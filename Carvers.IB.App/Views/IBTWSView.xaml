@@ -1,0 +1,73 @@
+﻿<UserControl x:Class="Carvers.IB.App.Views.IBTWSView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Carvers.IB.App.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300">
+  <UserControl.Resources>
+    <Style TargetType="{x:Type Button}"
+           x:Key="TileButton">
+      <Setter Property="Width" Value="100"/>
+      <Setter Property="Height" Value="100"/>
+      <Setter Property="Margin" Value="10"/>
+
+    </Style>
+  </UserControl.Resources>
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+      <Button Content="Connect" 
+              Command="{Binding ConnectCommand}"
+              Style="{StaticResource TileButton}"/>
+      <Button Content="Disconnect" 
+              Command="{Binding DisconnectCommand}"
+              Style="{StaticResource TileButton}"/>
+    </StackPanel>
+
+    <!--<ItemsControl x:Name="CurrencyPairItemsControl"
+                  DockPanel.Dock="Top"
+      ItemsSource="{Binding CurrencyPairs}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Button Content="{Binding}"
+                  Style="{StaticResource TileButton}"
+                  Command="{Binding ElementName=CurrencyPairItemsControl, Path=DataContext.RequestRealtimeDataCommand}"
+                  CommandParameter="{Binding}">
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel Orientation="Horizontal"/>
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+    </ItemsControl>-->
+
+    <TabControl DockPanel.Dock="Top"
+                MaxHeight="300"
+                ItemsSource="{Binding RealTimeBarDataViewModels}">
+      <TabControl.ItemTemplate>
+        <DataTemplate>
+          <TextBlock Text="{Binding Pair}"/>
+        </DataTemplate>
+      </TabControl.ItemTemplate>
+      <TabControl.ContentTemplate>
+        <DataTemplate>
+          <DataGrid ItemsSource="{Binding Candles}"/>
+        </DataTemplate>
+      </TabControl.ContentTemplate>
+    </TabControl>
+
+    <Button DockPanel.Dock="Top"
+            Content="HistoricalData" 
+            Command="{Binding RequestHistoricalDataCommand}"/>
+
+    <Button DockPanel.Dock="Top"
+            Content="Place Order" 
+            Command="{Binding PlaceOrderCommand}"/>
+
+    <ListView DockPanel.Dock="Bottom" 
+              ItemsSource="{Binding Messages}"/>
+  </DockPanel>
+</UserControl>

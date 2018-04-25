@@ -1,0 +1,47 @@
+﻿<Window x:Class="FxTrendFollowing.Views.FxMRMainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:app="clr-namespace:Carvers.IB.App;assembly=Carvers.IB.App"
+        xmlns:views="clr-namespace:Carvers.IB.App.Views;assembly=Carvers.IB.App"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="FxMRMainWindow" Height="300" Width="300">
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type app:IBTWSViewModel}">
+      <views:IBTWSView/>
+    </DataTemplate>
+  </Window.Resources>
+    <Grid>
+    <TabControl>
+      <TabItem Header="Strategy">
+        <DockPanel>
+          <Button Content="Start" DockPanel.Dock="Top"
+                  Command="{Binding StartCommand}"/>
+
+          <Button Content="Stop" DockPanel.Dock="Top"
+                  Command="{Binding StopCommand}"/>
+          <Grid
+            DockPanel.Dock="Top">
+            <StackPanel DataContext="{Binding Reporters.SummaryReport}">
+              <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+              <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+              <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+              <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+            </StackPanel>
+          </Grid>
+          <!--<DataGrid
+            ItemsSource="{Binding Strategy.Reporter.CumPL}"/>-->
+          <TextBlock DockPanel.Dock="Top"  Text="{Binding Status}"/>
+          <oxy:PlotView DockPanel.Dock="Top" Model="{Binding Reporters.ChartReport.PlotModel}"/>
+          
+        </DockPanel>
+
+      </TabItem>
+      <TabItem Header ="IBTWS">
+        <ContentControl Content="{Binding IbtwsViewModel}"/>
+      </TabItem>
+    </TabControl>
+    </Grid>
+</Window>

@@ -1,0 +1,61 @@
+﻿<Window x:Class="FxTrendFollowing.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FxTrendFollowing"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+
+  <TabControl>
+    <TabItem Header="Strategy Runner">
+      <DockPanel>
+      <TextBlock DockPanel.Dock="Bottom" Text="{Binding Strategy.Status}"></TextBlock>
+      <Grid DockPanel.Dock="Top">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition/>
+          <ColumnDefinition/>
+          <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <DataGrid 
+            Grid.Column="0"
+            ItemsSource="{Binding Strategy.StrategyVariations}" 
+            AutoGenerateColumns="False"
+            SelectedItem="{Binding Strategy.SelectedStrategy}"
+            IsReadOnly="True">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Open"
+                                    Binding="{Binding Options.GroupByCount}" Width="*" />
+            <DataGridTextColumn Header="PC"
+                                    Binding="{Binding Options.LookbackPeriod}" Width="*" />
+            <DataGridTextColumn Header="LB"
+                                    Binding="{Binding Options.HoldPeriod}" Width="*" />
+            <DataGridTextColumn Header="PL"
+                                    Binding="{Binding ProfitLoss}" Width="*" />
+
+            <DataGridTextColumn Header="Sharpe"
+                              Binding="{Binding Reporters.SummaryReport.SharpeRatio}" Width="*" />
+          </DataGrid.Columns>
+        </DataGrid>
+        <GridSplitter Grid.Column="1"/>
+        <StackPanel Grid.Column="2" DataContext="{Binding Strategy.SelectedReporters.SummaryReport}">
+          <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+          <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+          <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+          <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+        </StackPanel>
+      </Grid>
+      <!--<DataGrid
+            ItemsSource="{Binding Strategy.Reporter.CumPL}"/>-->
+      <oxy:PlotView Model="{Binding Strategy.SelectedReporters.ChartReport.PlotModel}"/>
+    </DockPanel>
+    </TabItem>
+    <TabItem Header="Currency Strength Indicator">
+      <DataGrid ItemsSource="{Binding Strategy.CurrencyStrengthViewModel.Items}">
+
+      </DataGrid>
+    </TabItem>
+  </TabControl>
+
+</Window>

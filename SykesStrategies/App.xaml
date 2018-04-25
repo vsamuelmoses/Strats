@@ -1,0 +1,20 @@
+﻿<Application x:Class="SykesStrategies.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SykesStrategies"
+             xmlns:model="clr-namespace:Carvers.Models;assembly=Carvers.Models"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+         <DataTemplate DataType="{x:Type model:StockData}">
+            <DataGrid ItemsSource="{Binding Candles}">
+                <!--<DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding TimeStamp}"/>
+                    <DataGridTextColumn Binding="{Binding Ohlc.Open}"/>
+                    <DataGridTextColumn Binding="{Binding Ohlc.High}"/>
+                    <DataGridTextColumn Binding="{Binding Ohlc.Low}"/>
+                    <DataGridTextColumn Binding="{Binding Ohlc.Close}"/>
+                </DataGrid.Columns>-->
+            </DataGrid>
+        </DataTemplate>
+    </Application.Resources>
+</Application>

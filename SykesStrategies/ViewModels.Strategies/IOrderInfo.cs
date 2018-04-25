@@ -1,0 +1,4 @@
+﻿namespace SykesStrategies.ViewModels.Strategies
+{
+    
+}

@@ -1,0 +1,54 @@
+﻿<Window x:Class="SykesStrategies.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SykesStrategies"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Button Content="Download Nasdaq" Click="OnDownloadClicked"></Button>
+            <Button Content="Download NYSE" Click="OnDownloadNYSEClicked"></Button>
+            <Button Content="Read Nasdaq" Click="OnReadClicked"></Button>
+            <Button Content="Read Sykes Universe" Click="OnReadSykesUniverse"></Button>
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding Strategy.Status}"></TextBlock>
+        <Grid DockPanel.Dock="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <DataGrid 
+            Grid.Column="0"
+            ItemsSource="{Binding Strategy.StrategyVariations}" 
+            AutoGenerateColumns="False"
+            SelectedItem="{Binding Strategy.SelectedStrategy}"
+            IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Open"
+                                    Binding="{Binding Options.Range}" Width="*" />
+                    <DataGridTextColumn Header="PC"
+                                    Binding="{Binding Options.PercentageChange}" Width="*" />
+                    <DataGridTextColumn Header="LB"
+                                    Binding="{Binding Options.Lookback}" Width="*" />
+                    <DataGridTextColumn Header="PL"
+                                    Binding="{Binding ProfitLoss}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <GridSplitter Grid.Column="1"/>
+            <StackPanel Grid.Column="2" DataContext="{Binding Strategy.SelectedReporters.SummaryReport}">
+                <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+            </StackPanel>
+        </Grid>
+        <!--<DataGrid
+            ItemsSource="{Binding Strategy.Reporter.CumPL}"/>-->
+        <oxy:PlotView Model="{Binding Strategy.SelectedReporters.ChartReport.PlotModel}"/>
+    </DockPanel>
+
+</Window>

@@ -9,6 +9,13 @@
 *.userosscache
 *.sln.docstates
 
+# Data folder
+Data/
+IBData/
+
+#Logs
+Logs/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
