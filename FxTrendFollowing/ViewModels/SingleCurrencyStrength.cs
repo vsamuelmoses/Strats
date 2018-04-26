@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Subjects;
-using System.Windows.Media.Converters;
 using Carvers.Models;
 
 namespace FxTrendFollowing.ViewModels
@@ -25,90 +24,25 @@ namespace FxTrendFollowing.ViewModels
             TimeStamp = ts;
         }
 
+        private static Dictionary<Currency, SingleCurrencyStrength> CurrentStrength = new Dictionary<Currency, SingleCurrencyStrength>();
+
         public static void Add(Currency baseCurrency, Currency againstCurrency, double value, DateTimeOffset ts)
         {
+            if (!CurrentStrength.ContainsKey(baseCurrency) || CurrentStrength[baseCurrency].TimeStamp != ts)
+                CurrentStrength[baseCurrency] = new SingleCurrencyStrength(baseCurrency, ts);
 
-            var strengthAtTime = PastStrength[baseCurrency].SingleOrDefault(strength => strength.TimeStamp == ts);
-
-            if (strengthAtTime == null)
+            CurrentStrength[baseCurrency].StrengthAgainstCurrency.Add(againstCurrency, value);
+            if (CurrentStrength[baseCurrency].StrengthAgainstCurrency.Count == 7)
             {
-                strengthAtTime = new SingleCurrencyStrength(baseCurrency, ts);
-                strengthAtTime.StrengthAgainstCurrency.Add(againstCurrency, value);
-                PastStrength[baseCurrency].Add(strengthAtTime);
-                //return strengthAtTime;
+                var recentStrength = CurrentStrength;
+                PastStrength[baseCurrency].Add(CurrentStrength[baseCurrency]);
+                CurrencyStrengthSubject.OnNext(recentStrength[baseCurrency]);
+
+                CurrentStrength.Remove(baseCurrency);
             }
-            else
-            {
-                strengthAtTime.StrengthAgainstCurrency.Add(againstCurrency, value);
-                if (strengthAtTime.StrengthAgainstCurrency.Count == 7)
-                {
-                    //PastStrength[baseCurrency].Add(strengthAtTime);
-                    CurrencyStrengthSubject.OnNext(strengthAtTime);
-                }
-                //return this;
-            }
-
-
-
-            ///var strengthAtTime = PastStrength[Currency].SingleOrDefault(strength => strength.TimeStamp == ts);
-
-            //if (strengthAtTime == null)
-            //{
-            //    strengthAtTime = new SingleCurrencyStrength(Currency, ts);
-            //    strengthAtTime.StrengthAgainstCurrency.Add(againstCurrency, value);
-            //    PastStrength[Currency].Add(strengthAtTime);
-            //    return strengthAtTime;
-            //}
-            //else
-            //{
-            //    var strengthAtTime = this;
-            //    if (StrengthAgainstCurrency.Count == 7)
-            //    {
-
-            //    }
-
-            //    StrengthAgainstCurrency.Add(againstCurrency, value);
-            //    if (StrengthAgainstCurrency.Count == 7)
-            //    {
-            //        PastStrength[Currency].Add(this);
-            //        CurrencyStrengthSubject.OnNext(this);
-
-
-            //    }
-            //    return this;
-            //}
-
-
-
-
-
-
-
-            //if (StrengthAgainstCurrency.Count != 0 && ts != TimeStamp)
-            //    return new SingleCurrencyStrength(Currency, new Dictionary<Currency, double> {{againstCurrency, value}}, ts);
-
-            //this.StrengthAgainstCurrency.Add(againstCurrency, value);
-
-            ////StrengthAgainstCurrency[againstCurrency] = value;
-
-
-            //var currenctStrength = new SingleCurrencyStrength(Currency, StrengthAgainstCurrency, ts);
-
-            //if (currenctStrength.StrengthAgainstCurrency.Count == 7)
-            //{
-            //    CurrencyStrengthSubject.OnNext(currenctStrength);
-            //    return new SingleCurrencyStrength(currenctStrength.Currency, new Dictionary<Currency, double>(), DateTimeOffset.MinValue, currenctStrength.PastStrength);
-            //}
-
-            //return currenctStrength;
         }
 
-
-
         public Currency Currency { get; }
-        //public int Count { get; }
-        //public double Value { get; }
-        //public double AverageValue => Value / Count;
         public double AverageValue => StrengthAgainstCurrency.Sum(kvp => kvp.Value)/ StrengthAgainstCurrency.Count;
         public DateTimeOffset TimeStamp { get; }
         public static Dictionary<Currency, List<SingleCurrencyStrength>> PastStrength { get; }

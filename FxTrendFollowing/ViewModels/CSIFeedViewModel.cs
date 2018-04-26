@@ -12,20 +12,11 @@ namespace FxTrendFollowing.ViewModels
         private readonly IEnumerable<HourlyCurrencyPairData> cpDataVms;
         private readonly ConcurrentDictionary<Currency, SingleCurrencyStrength> currencyStrengths;
 
-        public AllCurrencyStrength AllCurrencyStrength { get; private set; }
-
         public CSIFeedViewModel(IEnumerable<HourlyCurrencyPairData> cpDataVms)
         {
             this.cpDataVms = cpDataVms;
 
-            SingleCurrencyStrength.CurrencyStrengthStream.Subscribe(strength =>
-            {
-                if (AllCurrencyStrength == null)
-                    AllCurrencyStrength = AllCurrencyStrength.Unknown();
-
-                AllCurrencyStrength = AllCurrencyStrength.Add(strength);
-
-            });
+            SingleCurrencyStrength.CurrencyStrengthStream.Subscribe(strength => AllCurrencyStrength.Add(strength));
 
             currencyStrengths = new ConcurrentDictionary<Currency, SingleCurrencyStrength>(
                 cpDataVms
@@ -58,6 +49,37 @@ namespace FxTrendFollowing.ViewModels
         {
             return cpDataVms.Single(p => ReferenceEquals(p.Pair, pair))
                 .LatestCandle.Ohlc.Close.Value;
+        }
+    }
+
+    public class CSLogger
+    {
+        public CSLogger(Func<Currency, string> currencyStrengtFileGetter, string allCurrencyStrengthFile)
+        {
+            SingleCurrencyStrength.CurrencyStrengthStream.Subscribe(strength =>
+            {
+                System.IO.File.AppendAllLines(currencyStrengtFileGetter(strength.Currency),
+                    new[]
+                    {
+                        string.Join(",", new string[] {
+                            strength.TimeStamp.ToString(),
+                            string.Join(",", strength.StrengthAgainstCurrency.Select(kvp => $"{kvp.Key},{kvp.Value}")),
+                            $"AVG,{strength.AverageValue}"
+                        })
+                    });
+            });
+
+
+            AllCurrencyStrength.CurrencyStrengthStream.Subscribe(strength =>
+            {
+            System.IO.File.AppendAllLines(allCurrencyStrengthFile,
+                new[]
+                {
+                        string.Join(",", new string[] {
+                            strength.TimeStamp.ToString(),
+                            string.Join(",", strength.IndividualStrengths.Select(str => $"{str.Key},{str.Value.AverageValue}")) })
+                    });
+            });
         }
     }
 }

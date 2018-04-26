@@ -155,6 +155,11 @@ namespace FxTrendFollowing
         {
             return Path.Combine(Paths.IBData,$"{cxPair.ToString()}.csv");
         }
+
+        public static string CSFileGetter(Currency currency)
+        {
+            return Path.Combine(Paths.FxStrenghts, $"{currency.Symbol}.csv");
+        }
     }
 
     public static class Paths
@@ -162,5 +167,6 @@ namespace FxTrendFollowing
         public const string IBData = @"D:\Work\SykesStrategies\FxTrendFollowing\IBData";
         public const string Data = @"D:\Work\SykesStrategies\FxTrendFollowing";
         public const string FxStrenghts = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data";
+        public const string FxStrenghtsAll = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data\All.csv";
     }
 }

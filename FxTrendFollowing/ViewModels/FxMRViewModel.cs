@@ -66,7 +66,9 @@ namespace FxTrendFollowing.ViewModels
 
             CsiFeedViewModel = new CSIFeedViewModel(CurrencyPairDataVMs);
 
-            AllCurrencyStrength.CurrencyStrengthStream.Subscribe(val => Execute(val.TimeStamp));
+            var logger = new CSLogger(Utility.CSFileGetter, Paths.FxStrenghtsAll);
+
+            AllCurrencyStrength.CurrencyStrengthStream.Subscribe(val => Execute(val));
 
             //Ibtws = new IBTWS();
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter, new DateTimeOffset(2017,01,01,0,0,0, TimeSpan.Zero));
@@ -175,8 +177,9 @@ namespace FxTrendFollowing.ViewModels
         private double? target;
 
 
-        public void Execute(DateTimeOffset dateTimeOffset)
+        public void Execute(AllCurrencyStrength acs)
         {
+            var dateTimeOffset = acs.TimeStamp;
             Status = $"Executing {dateTimeOffset}";
 
             if (openOrder != null)
@@ -195,7 +198,7 @@ namespace FxTrendFollowing.ViewModels
             var strong = new List<Tuple<Currency, double>>();
             var weak = new List<Tuple<Currency, double>>();
             var strength = new List<double>();
-            foreach (var curr in CsiFeedViewModel.AllCurrencyStrength.IndividualStrengths)
+            foreach (var curr in acs.IndividualStrengths)
             {
 
                 var numberOfLBHours = (int) options.LookbackPeriod.TotalHours;
@@ -248,13 +251,13 @@ namespace FxTrendFollowing.ViewModels
 
                 if (strongestTup == null)
                 {
-                    var currentStrongest = CsiFeedViewModel.AllCurrencyStrength.IndividualStrengths.OrderByDescending(kvp => kvp.Value.AverageValue).First();
+                    var currentStrongest = acs.IndividualStrengths.OrderByDescending(kvp => kvp.Value.AverageValue).First();
                     strongestTup = Tuple.Create(currentStrongest.Key, currentStrongest.Value.AverageValue);
                 }
 
                 if (weakestTup == null)
                 {
-                    var currentWeakest = CsiFeedViewModel.AllCurrencyStrength.IndividualStrengths.OrderByDescending(kvp => kvp.Value.AverageValue).Last();
+                    var currentWeakest = acs.IndividualStrengths.OrderByDescending(kvp => kvp.Value.AverageValue).Last();
                     weakestTup = Tuple.Create(currentWeakest.Key, currentWeakest.Value.AverageValue);
                 }
 
@@ -431,9 +434,9 @@ namespace FxTrendFollowing.ViewModels
             //}
         }
 
-
-
-
+        public void Execute(DateTimeOffset dateTimeOffset)
+        {
+        }
 
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }

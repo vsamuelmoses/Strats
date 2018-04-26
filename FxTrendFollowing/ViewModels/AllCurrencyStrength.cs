@@ -10,46 +10,38 @@ namespace FxTrendFollowing.ViewModels
     {
         public DateTimeOffset TimeStamp { get; }
         public Dictionary<Currency, SingleCurrencyStrength> IndividualStrengths { get; }
-        public IEnumerable<AllCurrencyStrength> PastStrengths { get; }
+        public static List<AllCurrencyStrength> PastStrengths { get; }
+        private static AllCurrencyStrength CurrentStrength;
 
         static AllCurrencyStrength()
         {
             CurrencyStrengthSubject = new Subject<AllCurrencyStrength>();
+            PastStrengths = new List<AllCurrencyStrength>();
         }
 
-        private AllCurrencyStrength(IEnumerable<AllCurrencyStrength> pastStrengths, DateTimeOffset ts)
+        private AllCurrencyStrength(DateTimeOffset ts)
         {
             TimeStamp = ts;
             IndividualStrengths = new Dictionary<Currency, SingleCurrencyStrength>();
-            PastStrengths = pastStrengths;
         }
 
-        public AllCurrencyStrength Add(SingleCurrencyStrength strength)
+        public static AllCurrencyStrength Add(SingleCurrencyStrength strength)
         {
-            if (TimeStamp != strength.TimeStamp)
+            if (CurrentStrength == null || (CurrentStrength.TimeStamp != strength.TimeStamp))
+                CurrentStrength = new AllCurrencyStrength(strength.TimeStamp);
+
+            CurrentStrength.IndividualStrengths.Add(strength.Currency, strength);
+
+            if (CurrentStrength.IndividualStrengths.Count == 8)
             {
-                var csi = new AllCurrencyStrength(PastStrengths, strength.TimeStamp);
-                csi.IndividualStrengths.Add(strength.Currency, strength);
-                return csi;
+                PastStrengths.Add(CurrentStrength);
+                var recentStrength = CurrentStrength;
+                CurrencyStrengthSubject.OnNext(recentStrength);
+                CurrentStrength = null;
             }
 
-            IndividualStrengths.Add(strength.Currency, strength);
-
-            if (IndividualStrengths.Count == 8)
-            {
-                var past = PastStrengths.ToList();
-                past.Add(this);
-                var newStrength = new AllCurrencyStrength(past, strength.TimeStamp);
-                CurrencyStrengthSubject.OnNext(newStrength);
-                return newStrength;
-            }
-
-            return this;
+            return CurrentStrength;
         }
-
-        public static AllCurrencyStrength Unknown()
-            => new AllCurrencyStrength(Enumerable.Empty<AllCurrencyStrength>(), DateTimeOffset.MinValue);
-        
 
         private static readonly Subject<AllCurrencyStrength> CurrencyStrengthSubject;
         public static IObservable<AllCurrencyStrength> CurrencyStrengthStream => CurrencyStrengthSubject;
