@@ -150,6 +150,12 @@ namespace FxTrendFollowing
                 $"DAT_MT_{cxPair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
         }
 
+        public static string FxEURUSDFilePathGetter(DateTimeOffset dateTime)
+        {
+                return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                    $"DAT_MT_EURUSD_M1_{dateTime.Year.ToString()}02.csv");
+        }
+
 
         public static string FxIBDATAPathGetter(CurrencyPair cxPair)
         {
@@ -165,7 +171,7 @@ namespace FxTrendFollowing
     public static class Paths
     {
         public const string IBData = @"D:\Work\SykesStrategies\FxTrendFollowing\IBData";
-        public const string Data = @"D:\Work\SykesStrategies\FxTrendFollowing";
+        public const string Data = @"C:\Users\Senior\Documents\Strats\FxTrendFollowing";
         public const string FxStrenghts = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data";
         public const string FxStrenghtsAll = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data\All.csv";
     }
