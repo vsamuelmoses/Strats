@@ -19,6 +19,12 @@ namespace Carvers.Models
         {
         }
 
+        public OrderInfo(DateTimeOffset timestamp, Symbol symbol, IStrategy strategy, Price price, int size, Candle candle)
+            : this(timestamp, symbol, strategy, price, size)
+        {
+            Candle = candle;
+        }
+
         public OrderInfo(DateTimeOffset timestamp, Symbol symbol, IStrategy strategy, Price price, int size)
         {
             Strategy = strategy;
@@ -33,6 +39,7 @@ namespace Carvers.Models
         public DateTimeOffset TimeStamp { get; }
         public Price Price { get; }
         public Symbol Symbol { get; }
+        public Candle Candle { get; }
 
         public string ToCsv()
         {

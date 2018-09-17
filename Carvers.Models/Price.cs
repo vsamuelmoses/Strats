@@ -58,6 +58,10 @@ namespace Carvers.Models
         public static Price operator *(Price x, int y)
             => new Price(x.Value * y, x.Currency);
 
+        public static Price operator *(Price x, double y)
+            => new Price(x.Value * y, x.Currency);
+
+
         public static Price operator /(Price x, int y)
             => new Price(x.Value / y, x.Currency);
 

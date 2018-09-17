@@ -1,7 +1,9 @@
 ﻿using Carvers.Models;
 using Carvers.Models.Extensions;
+using Carvers.Models.Indicators;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 
 namespace FxTrendFollowing.Breakout.ViewModels
@@ -25,41 +27,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public Lookback Lb { get; private set; }
     }
 
-    public class Lookback
-    {
-        public Lookback(int period, ConcurrentQueue<Candle> candles)
-        {
-            Candles = candles;
-            HighCandle = candles.OrderBy(candle =>candle.Ohlc.High).LastOrDefault();
-            LowCandle = candles.OrderBy(candle => candle.Ohlc.Low).FirstOrDefault();
-            Period = period;
-        }
 
-        public int Count => Candles.Count;
-        public ConcurrentQueue<Candle> Candles { get; }
-        public Candle HighCandle { get; }
-        public Candle LowCandle { get; }
-        public Candle CurrentCandle => Candles.Last();
-        public int Period { get; }
-    }
-
-    public static class Extensions
-    {
-        public static Lookback Add(this Lookback lb, Candle candle)
-        {
-            if (lb.Period == lb.Count)
-            {
-                Candle none;
-                lb.Candles.TryDequeue(out none);
-            }
-
-            lb.Candles.Enqueue(candle);
-            return new Lookback(lb.Period, lb.Candles);
-        }
-
-        public static bool IsComplete(this Lookback lb)
-            => lb.Period == lb.Count;
-    }
+    
 
 
     public class TrendContinuation : IRule
@@ -69,8 +38,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         public TrendContinuation(Lookback lb)
         {
-            this.prevSentiment = CandleSentiment.Of(lb.CurrentCandle);
-            this.prevCandle = lb.CurrentCandle;
+            this.prevSentiment = CandleSentiment.Of(lb.LastCandle);
+            this.prevCandle = lb.LastCandle;
             Lb = lb;
         }
 
@@ -78,19 +47,25 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         public IRule Evaluate(Candle candle)
         {
-            var lb = Lb.Add(candle);
+            var lbEvaluator = new LookbackEvaluator(Lb);
+            var nexEvaluator = lbEvaluator.Evaluate(candle);
+            var lb = lbEvaluator.Lb;
 
             var thisSentiment = CandleSentiment.Of(candle);
             if (thisSentiment != prevSentiment)
-                return new LookbackEvaluator(Lb).Evaluate(candle);
+                return nexEvaluator;
 
-            if (prevSentiment == CandleSentiment.Green && prevCandle.Ohlc.High < candle.Ohlc.Close)
+            if (prevSentiment == CandleSentiment.Green 
+                && prevCandle.Ohlc.High < candle.Ohlc.Close
+                && CandleSentiment.Of(lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(Lb.Period))) == CandleSentiment.Red)
                 return new TrendReversalRule(candle, lb);
 
-            if (prevSentiment == CandleSentiment.Red && prevCandle.Ohlc.Low > candle.Ohlc.Close)
+            if (prevSentiment == CandleSentiment.Red 
+                && prevCandle.Ohlc.Low > candle.Ohlc.Close
+                && CandleSentiment.Of(lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(Lb.Period))) == CandleSentiment.Green)
                 return new TrendReversalRule(candle, lb);
 
-            return new LookbackEvaluator(Lb).Evaluate(candle);
+            return nexEvaluator;
 
         }
     }
@@ -111,29 +86,38 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         public IRule Evaluate(Candle candle)
         {
+            var lbEvaluator = new LookbackEvaluator(this.Lb);
+            var nextEvaluator = lbEvaluator.Evaluate(candle);
+            Lb = lbEvaluator.Lb;
+
+
             var thisSentiment = CandleSentiment.Of(candle);
             if (thisSentiment == prevSentiment)
-                return new LookbackEvaluator(Lb).Evaluate(candle);
-
-            if (prevSentiment == CandleSentiment.Green && prevCandle.Ohlc.Low > candle.Ohlc.Close
+                return nextEvaluator;
+            
+            if (prevSentiment == CandleSentiment.Green 
+                && prevCandle.Ohlc.Low > candle.Ohlc.Close
+                && prevCandle.Ohlc.Open > candle.Ohlc.Close
                 && !candle.IsLowerThan(Lb.LowCandle)
-                && (candle.Ohlc.Close.Value - Lb.LowCandle.Ohlc.Low.Value) * 100000 > 10)
+                && (candle.Ohlc.Close.Value - Lb.LowCandle.Ohlc.Low.Value) * 100000 > 100)
             {
                 //Console.WriteLine($"SOLD: {candle.TimeStamp}");
-                return new ProfitLossEvaluator(buy:false, candle, Lb.Add(candle), Lb.HighCandle, Lb.LowCandle);
+                return new ProfitLossEvaluator(buy:false, candle, Lb, Lb.HighCandle, Lb.LowCandle);
                 //return new CandleSentimentEvaluator().Evaluate(candle);
             }
 
-            if (prevSentiment == CandleSentiment.Red && prevCandle.Ohlc.High < candle.Ohlc.High
+            if (prevSentiment == CandleSentiment.Red 
+                && prevCandle.Ohlc.High < candle.Ohlc.High
+                && prevCandle.Ohlc.Open < candle.Ohlc.Close
                 && !candle.IsHigherThan(Lb.HighCandle)
-                && (Lb.HighCandle.Ohlc.High.Value - candle.Ohlc.Close.Value) * 100000 > 10)
+                && (Lb.HighCandle.Ohlc.High.Value - candle.Ohlc.Close.Value) * 100000 > 100)
             {
                 //Console.WriteLine($"Bought: {candle.TimeStamp}");
                 //return new CandleSentimentEvaluator().Evaluate(candle);
-                return new ProfitLossEvaluator(buy: true, candle, Lb.Add(candle), Lb.HighCandle, Lb.LowCandle);
+                return new ProfitLossEvaluator(buy: true, candle, Lb, Lb.HighCandle, Lb.LowCandle);
             }
 
-            return new LookbackEvaluator(Lb).Evaluate(candle);
+            return nextEvaluator;
 
         }
 
@@ -144,6 +128,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             private readonly Candle hCandle;
             private readonly Candle entryCandle;
             private readonly bool buy;
+            private double target;
 
             public ProfitLossEvaluator(bool buy, Candle candle, Lookback lb, Candle hCandle, Candle lCandle)
             {
@@ -152,23 +137,88 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 Lb = lb;
                 this.hCandle = hCandle;
                 this.lCandle = lCandle;
+
+                if (buy)
+                {
+                    var idealTarget = hCandle.Ohlc.High - entryCandle.Ohlc.Close;
+                    target = idealTarget.Value / 2;
+                    
+                }
+                else
+                {
+                    var idealTarget = entryCandle.Ohlc.Close - lCandle.Ohlc.Low;
+                    target = idealTarget.Value / 2;
+                }
+
+                //if (Math.Abs(target) > 0.00050)
+                //    target = 0.00050;
+
             }
 
-            public Lookback Lb { get; }
+            public Lookback Lb { get; private set; }
 
             public IRule Evaluate(Candle candle)
             {
-                if (candle.IsHigherThan(Lb.HighCandle) || candle.IsLowerThan(Lb.LowCandle))
+                var lbEvaluator = new LookbackEvaluator(Lb);
+                var nextEvaluator = lbEvaluator.Evaluate(candle);
+                Lb = lbEvaluator.Lb;
+
+               
+                if (buy)
                 {
-                    var pl = candle.Ohlc.Close - entryCandle.Ohlc.Close;
-                    var side = buy ? "BOUGHT" : "SOLD";
-                    var sideSymbol = buy ? +1 : -1;
-                    Console.WriteLine($"{side},{entryCandle.TimeStamp},{candle.TimeStamp},{sideSymbol * pl.Value * 100000}");
-                    return new LookbackEvaluator(Lb).Evaluate(candle);
+                    if (candle.IsLowerThan(entryCandle))
+                    {
+                        Close(entryCandle.Ohlc.Low.Value, candle);
+                        return nextEvaluator;
+                    }
+
+                    //if (candle.IsHigherThan(hCandle))
+                    if (candle.Ohlc.High - entryCandle.Ohlc.Close > (hCandle.Ohlc.High - entryCandle.Ohlc.Close)* (2/3))
+                    {
+                        Close(candle.Ohlc.High.Value, candle);
+                        return nextEvaluator;
+                    }
+                }
+                if (!buy)
+                {
+                    if (candle.IsHigherThan(entryCandle))
+                    {
+                        Close(entryCandle.Ohlc.High.Value, candle);
+                        return nextEvaluator;
+                    }
+
+                    var tar = (entryCandle.Ohlc.Close - lCandle.Ohlc.Low) * (2 / 3);
+                    //if (candle.IsLowerThan(lCandle))
+                    if (entryCandle.Ohlc.Close - candle.Ohlc.High > tar)
+                    {
+                        Close(candle.Ohlc.Low.Value, candle);
+                        return nextEvaluator;
+                    }
+                    
                 }
 
 
-                return new ProfitLossEvaluator(buy, entryCandle, Lb.Add(candle), hCandle, lCandle);
+                
+
+                //if (closeTrade || s(Math.Abmovement.Value) >= target)
+                //{
+                //    var pl = candle.Ohlc.Close - entryCandle.Ohlc.Close;
+                //    var side = buy ? "BOUGHT" : "SOLD";
+                //    var sideSymbol = buy ? +1 : -1;
+                //    Console.WriteLine($"{side},{entryCandle.TimeStamp},{candle.TimeStamp},{sideSymbol * pl.Value * 100000}");
+                //    return nextEvaluator;
+                //}
+
+
+                return new ProfitLossEvaluator(buy, entryCandle, Lb, hCandle, lCandle);
+            }
+
+            private void Close(double closingPrice, Candle candle)
+            {
+                var pl = closingPrice - entryCandle.Ohlc.Close.Value;
+                var side = buy ? "BOUGHT" : "SOLD";
+                var sideSymbol = buy ? +1 : -1;
+                Console.WriteLine($"{side},{entryCandle.TimeStamp},{candle.TimeStamp},{sideSymbol * pl * 100000}");
             }
 
         }
