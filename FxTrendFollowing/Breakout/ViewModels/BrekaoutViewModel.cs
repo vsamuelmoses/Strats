@@ -8,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
@@ -80,12 +81,18 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     .Select(pair => Tuple.Create(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
                     .ToList());
             });
+
+            var logReport = new StrategyLogReport(new[] { Strategy }, logName: "MoBo");
+            var chartReport = new StrategyChartReport(new[] { Strategy }, Dispatcher.CurrentDispatcher);
+            var summaryReport = new StrategySummaryReport(new[] { Strategy });
+            Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
         }
 
         public ICommand StartCommand { get; }
         public IBTWSSimulator Ibtws { get; }
         public IBTWSViewModel IbtwsViewModel { get; }
         public Strategy Strategy { get; }
+        public Carvers.Infra.ViewModels.Reporters Reporters { get; }
     }
 
 

@@ -171,7 +171,8 @@ namespace FxTrendFollowing
     public static class Paths
     {
         public const string IBData = @"D:\Work\SykesStrategies\FxTrendFollowing\IBData";
-        public const string Data = @"C:\Users\Senior\Documents\Strats\FxTrendFollowing";
+        //public const string Data = @"C:\Users\Senior\Documents\Strats\FxTrendFollowing";
+        public const string Data = @"..\..\";
         public const string FxStrenghts = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data";
         public const string FxStrenghtsAll = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data\All.csv";
     }

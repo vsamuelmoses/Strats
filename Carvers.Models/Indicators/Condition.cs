@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace Carvers.Models.Indicators
 {
@@ -63,18 +64,15 @@ namespace Carvers.Models.Indicators
 
     public class Strategy : IStrategy
     {
+        public string StrategyName { get; }
         public IOrder OpenOrder { get; private set; }
 
         public Strategy(string strategyName)
         {
+            StrategyName = strategyName;
             openOrders = new Subject<IOrder>();
             closeddOrders = new Subject<IOrder>();
             closedOrders = new ConcurrentBag<IClosedOrder>();
-
-            //var logReport = new StrategyLogReport(new[] { this }, logName: strategyName);
-            //var chartReport = new StrategyChartReport(new[] { this }, Dispatcher.CurrentDispatcher);
-            //var summaryReport = new StrategySummaryReport(new[] { this });
-            //Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
         }
 
         public void Execute(DateTimeOffset dateTimeOffset)
@@ -237,7 +235,35 @@ namespace Carvers.Models.Indicators
 
             return false;
         }
-        
+
+        public static Fractol GetFractolIndicator(this Lookback lb, int size)
+        {
+            if (size % 2 == 0)
+                throw new Exception("unexpected error - expecting odd size");
+
+            var firstHalf = lb.Candles
+                .TakeLast(size)
+                .Take((size / 2) + 1).ToList();
+
+            var lastHalf = lb.Candles
+                .TakeLast(size)
+                .TakeLast((size / 2) + 1).ToList();
+
+            var bearishFractol = firstHalf.Select(candle => candle.Ohlc.High.Value).IsInAscending()
+                                 && lastHalf.Select(candle => candle.Ohlc.High.Value).IsInDescending()
+                                 && lastHalf.Select(candle => candle.Ohlc.Low.Value).IsInDescending();
+
+            var bullishFracol = firstHalf.Select(candle => candle.Ohlc.Low.Value).IsInDescending()
+                                && lastHalf.Select(candle => candle.Ohlc.High.Value).IsInAscending()
+                                && lastHalf.Select(candle => candle.Ohlc.Low.Value).IsInAscending();
+            if (bearishFractol)
+                return Fractol.Bearish;
+            if (bullishFracol)
+                return Fractol.Bullish;
+
+            return Fractol.Null;
+        }
+
 
         public static bool ClosedHigherThanPreviousHigh(Candle candle1, Candle candle2)
             => candle2.Ohlc.Close > candle1.Ohlc.High;
@@ -514,4 +540,16 @@ namespace Carvers.Models.Indicators
 
         public bool IsSuccess { get; }
     }
+
+    public class Fractol
+    {
+        public static Fractol Bearish = new Fractol("Bearish");
+        public static Fractol Bullish = new Fractol("Bullish");
+        public static Fractol Null = new Fractol("Null");
+        private Fractol(string description) { }
+    }
+    
+
+
+
 }

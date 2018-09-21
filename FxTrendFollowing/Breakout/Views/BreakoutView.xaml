@@ -4,9 +4,26 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FxTrendFollowing.Breakout.Views"
+        xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
         Title="BreakoutView" Height="450" Width="800">
     <Grid>
         <Button Content="Start" Command="{Binding StartCommand}"/>
+        <TabControl>
+            <TabItem Header="Strategy Runner">
+                <DockPanel>
+                    <Button Content="Start" DockPanel.Dock="Top" Command="{Binding StartCommand}"/>
+                    <Grid DockPanel.Dock="Top">
+                        <StackPanel Grid.Column="2" DataContext="{Binding Reporters.SummaryReport}">
+                            <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                            <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                            <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                            <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+                        </StackPanel>
+                    </Grid>
+                    <oxy:PlotView Model="{Binding Reporters.ChartReport.PlotModel}"/>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
