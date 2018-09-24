@@ -90,6 +90,9 @@ namespace Carvers.Models.Extensions
         public static double CandleLength(this Candle candle)
             => candle.Ohlc.High.Value - candle.Ohlc.Low.Value;
 
+        public static double AbsBodyLength(this Candle candle)
+            => Math.Abs(candle.Ohlc.Close.Value - candle.Ohlc.Open.Value);
+
         public static bool IsHigherThan(this Candle candle1, Candle candle2)
             => candle1.Ohlc.High.Value > candle2.Ohlc.High.Value;
 

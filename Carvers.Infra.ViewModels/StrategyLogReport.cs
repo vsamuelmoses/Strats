@@ -9,7 +9,7 @@ namespace Carvers.Infra.ViewModels
 {
     public static class Paths
     {
-        public static string Reports = @"D:\Work\SykesStrategies\Logs";
+        public static string Reports = @"..\..\Logs";
     }
 
     public class StrategyLogReport
@@ -18,8 +18,12 @@ namespace Carvers.Infra.ViewModels
         public StrategyLogReport(IEnumerable<IStrategy> strategies, string logName)
         {
             var closedOrders = strategies.Select(strat => strat.CloseddOrders)
-                .Merge().Subscribe(info => Log.Add(info.ToCsv()), 
-                () => File.WriteAllLines(Path.Combine(Paths.Reports, $"{DateTime.Now:yyyyMMddHHmmss}.{logName}.csv"), Log));
+                .Merge()
+                .Subscribe(info => Log.Add(info.ToCsv()), 
+                () => {
+
+                    File.WriteAllLines(Path.Combine(Paths.Reports, $"{DateTime.Now:yyyyMMddHHmmss}.{logName}.csv"), Log);
+                    });
         }
     }
 }

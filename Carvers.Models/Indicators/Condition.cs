@@ -3,6 +3,7 @@ using Carvers.Models.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Subjects;
@@ -119,16 +120,16 @@ namespace Carvers.Models.Indicators
 
     public class StrategyContext : IContext
     {
-        public StrategyContext(Strategy strategy, Lookback lb, IContextInfo contextInfo)
+        public StrategyContext(Strategy strategy, Lookback lb, ImmutableList<IContextInfo> contextInfos)
         {
             Strategy = strategy;
             Lb = lb;
-            Info = contextInfo;
+            Infos = contextInfos;
         }
 
         public Lookback Lb { get; }
         public Strategy Strategy { get; }
-        public IContextInfo Info { get; }
+        public ImmutableList<IContextInfo> Infos { get; }
     }
 
     public interface IContextInfo { }
@@ -148,6 +149,22 @@ namespace Carvers.Models.Indicators
         public Candle EntryCandle { get; }
         public Candle HCandle { get; }
         public Candle LCandle { get; }
+    }
+
+    public class FractolContextInfo : IContextInfo
+    {
+        public FractolContextInfo(Fractol fractol, List<Candle> candles)
+        {
+            Fractol = fractol;
+            Candles = candles;
+
+            Debug.Assert(Candles.Count % 2 != 0);
+            MiddleCandle = Candles[Candles.Count / 2 + 1];
+        }
+
+        public Candle MiddleCandle { get; }
+        public Fractol Fractol { get; }
+        public List<Candle> Candles { get; }
     }
 
 
@@ -187,7 +204,7 @@ namespace Carvers.Models.Indicators
             switch (context)
             {
                 case StrategyContext sc:
-                    return new StrategyContext(sc.Strategy, sc.Lb.Add(candle), sc.Info);
+                    return new StrategyContext(sc.Strategy, sc.Lb.Add(candle), sc.Infos);
                 default:
                     throw new Exception("Unexpected");
             }
@@ -236,7 +253,7 @@ namespace Carvers.Models.Indicators
             return false;
         }
 
-        public static Fractol GetFractolIndicator(this Lookback lb, int size)
+        public static Fractol GetFractolIndicator(this Lookback lb, int size, double strength)
         {
             if (size % 2 == 0)
                 throw new Exception("unexpected error - expecting odd size");
@@ -256,9 +273,19 @@ namespace Carvers.Models.Indicators
             var bullishFracol = firstHalf.Select(candle => candle.Ohlc.Low.Value).IsInDescending()
                                 && lastHalf.Select(candle => candle.Ohlc.High.Value).IsInAscending()
                                 && lastHalf.Select(candle => candle.Ohlc.Low.Value).IsInAscending();
-            if (bearishFractol)
+
+            var interesetdCandles = lb.Candles.TakeLast(size);
+            var allCandlesExcept1st = interesetdCandles.Skip(1);
+            var allCandlesExceptLast = interesetdCandles.Take(size - 1);
+
+            var isMovementStrong = allCandlesExcept1st.Zip(allCandlesExceptLast, 
+                (candle1, candle2) => Math.Abs(candle1.Ohlc.High.Value - candle2.Ohlc.High.Value) >= strength 
+                && Math.Abs(candle1.Ohlc.Low.Value - candle2.Ohlc.Low.Value) >= strength)
+                .All(val => val);
+
+            if (bearishFractol && isMovementStrong)
                 return Fractol.Bearish;
-            if (bullishFracol)
+            if (bullishFracol && isMovementStrong)
                 return Fractol.Bullish;
 
             return Fractol.Null;
@@ -350,6 +377,35 @@ namespace Carvers.Models.Indicators
         }
     }
 
+    public class FuncFractalCondition : FuncCondition<StrategyContext>
+    {
+        public FuncFractalCondition(double fractolStrength,
+            double lbMovement,
+            Func<FuncCondition<StrategyContext>> onSuccess,
+            Func<FuncCondition<StrategyContext>> onFailure,
+            Func<StrategyContext, StrategyContext> onSuccessAction)
+            : base(onSuccess, onFailure,
+                  new List<Func<StrategyContext, bool>>
+                  {
+                    context => {
+                        var lbCandle = context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period));
+
+                        if(lbCandle.AbsBodyLength() < lbMovement)
+                            return false;
+
+                        if (BooleanIndicators.GetFractolIndicator(context.Lb, 5, fractolStrength) == Fractol.Bullish)
+                            return CandleSentiment.Of(lbCandle) == CandleSentiment.Green;
+
+                        if (BooleanIndicators.GetFractolIndicator(context.Lb, 5, fractolStrength) == Fractol.Bearish)
+                            return CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Red;
+
+                        return false;
+                    }
+                  }, onSuccessAction)
+        {
+        }
+    }
+
 
     public class FuncTrendReversalCondition : FuncCondition<StrategyContext>
     {
@@ -385,21 +441,8 @@ namespace Carvers.Models.Indicators
                   {
                       var lastCandle = context.Lb.LastCandle;
                       var candleSentiment = CandleSentiment.Of(context.Lb.LastCandle);
-                      if (candleSentiment == CandleSentiment.Red)
-                      {
-                          var shortSellOrder = new ShortSellOrder(
-                              new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close, 100000));
-                          context.Strategy.Open(shortSellOrder);
-                          return new StrategyContext(context.Strategy, context.Lb, new EntryContextInfo(lastCandle, context.Lb.HighCandle, context.Lb.LowCandle));
-                      }
-                      if (candleSentiment == CandleSentiment.Green)
-                      {
-                          context.Strategy.Open(new BuyOrder(
-                              new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close, 100000)));
-                          return new StrategyContext(context.Strategy, context.Lb, new EntryContextInfo(lastCandle, context.Lb.HighCandle, context.Lb.LowCandle));
-                      }
 
-                      throw new Exception("Unexpected error");
+                      return context.PlaceOrderInlineCandleSentiment(lastCandle, candleSentiment.ToSide());
                   })
         {
         }
@@ -416,27 +459,23 @@ namespace Carvers.Models.Indicators
                       if (context.Strategy.OpenOrder is BuyOrder)
                       {
                           var candle = context.Lb.LastCandle;
-                          var entryContext = ((EntryContextInfo)context.Info);
+                          var entryContext = context.Infos.OfType<EntryContextInfo>().Single();
+                          var fractolContext = context.Infos.OfType<FractolContextInfo>().Single();
 
-                          if (candle.IsLowerThan(entryContext.EntryCandle))
+                          if (candle.IsLowerThan(fractolContext.MiddleCandle))
                           {
-                              var pl = entryContext.EntryCandle.Ohlc.Low.Value - entryContext.EntryCandle.Ohlc.Close.Value;
-                              Console.WriteLine($"Bought,{entryContext.EntryCandle.TimeStamp},{candle.TimeStamp}, {pl * 100000}");
-
                               context.Strategy.Close(
                                   new SellOrder((BuyOrder)context.Strategy.OpenOrder, 
-                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, entryContext.EntryCandle.Ohlc.Low, 100000, candle)));
+                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, fractolContext.MiddleCandle.Ohlc.Low, 100000, candle)));
                               return true;
                           }
 
                           Price target = (entryContext.HCandle.Ohlc.High - entryContext.EntryCandle.Ohlc.Close) * (2d / 3);
                           if (candle.Ohlc.High - entryContext.EntryCandle.Ohlc.Close > target)
                           {
-                              Console.WriteLine($"Bought,{entryContext.EntryCandle.TimeStamp},{candle.TimeStamp}, {target.Value * 100000}");
-
                               context.Strategy.Close(
                                   new SellOrder((BuyOrder)context.Strategy.OpenOrder,
-                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, target, 100000, candle)));
+                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, entryContext.EntryCandle.Ohlc.Close + target, 100000, candle)));
                               return true;
                           }
 
@@ -446,9 +485,10 @@ namespace Carvers.Models.Indicators
                       if (context.Strategy.OpenOrder is ShortSellOrder)
                       {
                           var candle = context.Lb.LastCandle;
-                          var entryContext = ((EntryContextInfo)context.Info);
-                          
-                          if (candle.IsHigherThan(entryContext.EntryCandle))
+                          var entryContext = context.Infos.OfType<EntryContextInfo>().Single();
+                          var fractolContext = context.Infos.OfType<FractolContextInfo>().Single();
+
+                          if (candle.IsHigherThan(fractolContext.MiddleCandle))
                           {
 
                               var pl = entryContext.EntryCandle.Ohlc.High.Value - entryContext.EntryCandle.Ohlc.Close.Value;
@@ -456,20 +496,19 @@ namespace Carvers.Models.Indicators
 
                               context.Strategy.Close(
                                   new BuyToCoverOrder((ShortSellOrder)context.Strategy.OpenOrder,
-                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, entryContext.EntryCandle.Ohlc.High, 100000, candle)));
+                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, fractolContext.MiddleCandle.Ohlc.High, 100000, candle)));
                               return true;
                           }
 
 
-                          var target = (entryContext.EntryCandle.Ohlc.Close - entryContext.LCandle.Ohlc.Low) * (2d / 3);
-                          Debug.Assert(target.Value > 0);
-                          if (entryContext.EntryCandle.Ohlc.Close - candle.Ohlc.Low > target)
+                         var target = (entryContext.EntryCandle.Ohlc.Close - entryContext.LCandle.Ohlc.Low) * (2d / 3);
+                         if (entryContext.EntryCandle.Ohlc.Close - candle.Ohlc.Low > target)
                           {
                               Console.WriteLine($"SOLD,{entryContext.EntryCandle.TimeStamp},{candle.TimeStamp}, {target.Value * 100000}");
 
                               context.Strategy.Close(
                                   new BuyToCoverOrder((ShortSellOrder)context.Strategy.OpenOrder,
-                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, target, 100000, candle)));
+                                    new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, entryContext.EntryCandle.Ohlc.Close - target, 100000, candle)));
                               return true;
                           }
 
@@ -481,6 +520,19 @@ namespace Carvers.Models.Indicators
         {
         }
     }
+
+    public class FuncExitOnTargetCondition : FuncCondition<StrategyContext>
+    {
+        public FuncExitOnTargetCondition(double target,
+            Func<FuncCondition<StrategyContext>> onSuccess,
+            Func<FuncCondition<StrategyContext>> onFailure)
+            : base(onSuccess,
+                  onFailure,
+                  predicate: context => context.CloseOrderOnTargetReached(target))
+        {
+        }
+    }
+
 
 
     public class FuncCondition<T>
@@ -548,8 +600,69 @@ namespace Carvers.Models.Indicators
         public static Fractol Null = new Fractol("Null");
         private Fractol(string description) { }
     }
-    
+
+    public static class StrategyContextHelper
+    {
+        public static StrategyContext PlaceOrderInlineCandleSentiment(this StrategyContext context, Candle lastCandle, Side side)
+        {
 
 
+            if (side == Side.ShortSell)
+            {
+                var shortSellOrder = new ShortSellOrder(
+                    new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close, 100000));
+                context.Strategy.Open(shortSellOrder);
+                return new StrategyContext(context.Strategy, context.Lb,
+                    ImmutableList.Create<IContextInfo>(new[] { new EntryContextInfo(lastCandle, context.Lb.HighCandle, context.Lb.LowCandle) }));
+            }
 
+            if (side == Side.Buy)
+            {
+                context.Strategy.Open(new BuyOrder(
+                    new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close, 100000)));
+                return new StrategyContext(context.Strategy, context.Lb,
+                    ImmutableList.Create<IContextInfo>(new[] { new EntryContextInfo(lastCandle, context.Lb.HighCandle, context.Lb.LowCandle) }));
+            }
+
+            throw new Exception("unexpected error");
+        }
+
+        public static bool CloseOrderOnTargetReached(this StrategyContext context, double target)
+        {
+            var candle = context.Lb.LastCandle;
+            var entryContext = context.Infos.OfType<EntryContextInfo>().Single();
+
+            var movement = Math.Abs(candle.Ohlc.Close.Value - entryContext.EntryCandle.Ohlc.Close.Value);
+            if (movement >= target)
+            {
+                if (context.Strategy.OpenOrder is BuyOrder)
+                {
+                    context.Strategy.Close(
+                        new SellOrder((BuyOrder)context.Strategy.OpenOrder,
+                          new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, candle.Ohlc.Close, 100000, candle)));
+                    return true;
+                }
+
+                if (context.Strategy.OpenOrder is ShortSellOrder)
+                {
+
+                    context.Strategy.Close(
+                        new BuyToCoverOrder((ShortSellOrder)context.Strategy.OpenOrder,
+                          new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, candle.Ohlc.Close, 100000, candle)));
+                    return true;
+                }
+
+                throw new Exception("Unexpected error");
+
+            }
+
+            return false;
+        }
+    }
+
+    public static class StrategyContextExtensions
+    {
+        public static StrategyContext AddContextInfo(this StrategyContext context, IContextInfo info)
+            => new StrategyContext(context.Strategy, context.Lb, context.Infos.Add(info));
+    }
 }

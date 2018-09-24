@@ -2,9 +2,6 @@
 using Carvers.Models.Extensions;
 using Carvers.Models.Indicators;
 using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Linq;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
@@ -26,10 +23,6 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         public Lookback Lb { get; private set; }
     }
-
-
-    
-
 
     public class TrendContinuation : IRule
     {
