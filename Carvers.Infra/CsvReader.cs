@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Carvers.Infra.Extensions;
@@ -106,4 +108,31 @@ namespace Carvers.Infra
             return peekedLine.Item2;
         }
     }
+
+    public class FileFeedService<T>
+        where T : class
+    {
+        private readonly Subject<T> stream;
+        public FileFeedService(FileInfo file, Func<string, T> ctr, TimeSpan streamSpeed)
+        {
+            //stream = new Subject<T>();
+
+            var feed = new FileFeed<T>(file.FullName, ctr);
+
+            //Observable
+            //    .Interval(streamSpeed)
+            //    .Subscribe(_ =>
+            //    {
+            //        stream.Publish(feed.ReadNextLine());
+            //    });
+
+            Stream = Observable
+                .Interval(streamSpeed)
+                .Select(val => feed.ReadNextLine());
+
+        }
+
+        public IObservable<T> Stream { get; private set; }
+    }
+    
 }

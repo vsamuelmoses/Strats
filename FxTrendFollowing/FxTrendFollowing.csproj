@@ -152,6 +152,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Carvers.Charting.App\Carvers.Charting.App.csproj">
+      <Project>{66a99234-410b-4c12-9a8f-64985ebcc876}</Project>
+      <Name>Carvers.Charting.App</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Carvers.IB.App\Carvers.IB.App.csproj">
       <Project>{c8a448aa-996e-4b66-9cb2-3cf997a0e589}</Project>
       <Name>Carvers.IB.App</Name>

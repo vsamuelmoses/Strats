@@ -94,7 +94,7 @@ namespace FxTrendFollowing
             var engineConfig = new EngineConfig(new DateTimeOffset(2016, 01, 01, 0, 0, 0, TimeSpan.Zero),
                 new DateTimeOffset(2016, 01, 31, 0, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(1));
 
-            Universe = new DirectoryUniverse(new DirectoryInfo("../../2016"), Utility.Fx1Min, Utility.Fx1MinFileNameToSymbolConverter);
+            Universe = new DirectoryUniverse(new DirectoryInfo("../../2016"), Utility.CsvToFx1MinCandle, Utility.Fx1MinFileNameToSymbolConverter);
 
 
             //var engineConfig = new EngineConfig(new DateTimeOffset(2015, 01, 01, 0, 0, 0, TimeSpan.Zero),

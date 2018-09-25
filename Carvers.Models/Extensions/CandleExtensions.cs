@@ -100,7 +100,4 @@ namespace Carvers.Models.Extensions
             => candle1.Ohlc.Low.Value < candle2.Ohlc.Low.Value;
 
     }
-
-
-    
 }

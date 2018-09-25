@@ -65,6 +65,8 @@
     <Compile Include="BuyToCoverOrder.cs" />
     <Compile Include="Candle.cs" />
     <Compile Include="DailyCandle.cs" />
+    <Compile Include="DataReaders\AggreagateCandleFeed.cs" />
+    <Compile Include="DataReaders\CsvToModelCreators.cs" />
     <Compile Include="DirectoryUniverse.cs" />
     <Compile Include="Extensions\CandleExtensions.cs" />
     <Compile Include="Extensions\PriceExtension.cs" />
@@ -72,6 +74,7 @@
     <Compile Include="Extensions\StringEntensions.cs" />
     <Compile Include="IClosedOrder.cs" />
     <Compile Include="Indicators\Condition.cs" />
+    <Compile Include="Indicators\MovingAverage.cs" />
     <Compile Include="IOpenOrder.cs" />
     <Compile Include="IOrder.cs" />
     <Compile Include="IOrderInfo.cs" />

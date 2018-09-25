@@ -46,6 +46,11 @@ namespace Carvers.Models
             }
         }
 
+        public double Open => Ohlc.Open.Value;
+        public double High => Ohlc.High.Value;
+        public double Low => Ohlc.Low.Value;
+        public double Close => Ohlc.Close.Value;
+        
         public static Candle Null => null;
     }
 }

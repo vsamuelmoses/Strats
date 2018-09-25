@@ -9,7 +9,7 @@ namespace FxTrendFollowing
 {
     public static class Utility
     {
-        public static MinuteCandle Fx1Min(string[] values)
+        public static MinuteCandle CsvToFx1MinCandle(string[] values)
         {
             try
             {

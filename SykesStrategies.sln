@@ -43,6 +43,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FxStrategies", "FxStrategie
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Carvers.Models.Tests", "Carvers.Models.Tests\Carvers.Models.Tests.csproj", "{D7724D9D-ECE1-4AAA-8611-46A07CDD1C1F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Carvers.Charting", "Carvers.Charting\Carvers.Charting.csproj", "{8DC4E334-EB48-4DAF-BEFE-F4273CED3726}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Carvers.Charting.App", "Carvers.Charting.App\Carvers.Charting.App.csproj", "{66A99234-410B-4C12-9A8F-64985EBCC876}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +129,14 @@ Global
 		{D7724D9D-ECE1-4AAA-8611-46A07CDD1C1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7724D9D-ECE1-4AAA-8611-46A07CDD1C1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7724D9D-ECE1-4AAA-8611-46A07CDD1C1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DC4E334-EB48-4DAF-BEFE-F4273CED3726}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DC4E334-EB48-4DAF-BEFE-F4273CED3726}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DC4E334-EB48-4DAF-BEFE-F4273CED3726}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DC4E334-EB48-4DAF-BEFE-F4273CED3726}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66A99234-410B-4C12-9A8F-64985EBCC876}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66A99234-410B-4C12-9A8F-64985EBCC876}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66A99234-410B-4C12-9A8F-64985EBCC876}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66A99234-410B-4C12-9A8F-64985EBCC876}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
