@@ -18,7 +18,7 @@ namespace Carvers.Models.DataReaders
                 {
                     if (lastCandle == null)
                     {
-                        if(candle.TimeStamp.Second == 0)
+                        if(candle.TimeStamp.Second == 0 && candle.TimeStamp.Minute == 0)
                             lastCandle = candle;
 
                         return;
@@ -36,6 +36,12 @@ namespace Carvers.Models.DataReaders
                         stream.OnNext(lastCandle);
                         lastCandle = null;
                     }
+                    else if (candle.TimeStamp - lastCandle.TimeStamp > span)
+                    {
+                        stream.OnNext(lastCandle);
+                        lastCandle = candle;
+                    }
+
                 });
         }
 
