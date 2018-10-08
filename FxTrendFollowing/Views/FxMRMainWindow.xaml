@@ -6,42 +6,45 @@
         xmlns:app="clr-namespace:Carvers.IB.App;assembly=Carvers.IB.App"
         xmlns:views="clr-namespace:Carvers.IB.App.Views;assembly=Carvers.IB.App"
         xmlns:oxy="http://oxyplot.org/wpf"
+        xmlns:charting="clr-namespace:Carvers.Charting.Views;assembly=Carvers.Charting"
         mc:Ignorable="d"
         Title="FxMRMainWindow" Height="300" Width="300">
-  <Window.Resources>
-    <DataTemplate DataType="{x:Type app:IBTWSViewModel}">
-      <views:IBTWSView/>
-    </DataTemplate>
-  </Window.Resources>
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type app:IBTWSViewModel}">
+            <views:IBTWSView/>
+        </DataTemplate>
+    </Window.Resources>
     <Grid>
-    <TabControl>
-      <TabItem Header="Strategy">
-        <DockPanel>
-          <Button Content="Start" DockPanel.Dock="Top"
+        <TabControl>
+            <TabItem Header="Strategy">
+                <DockPanel>
+                    <Button Content="Start" DockPanel.Dock="Top"
                   Command="{Binding StartCommand}"/>
 
-          <Button Content="Stop" DockPanel.Dock="Top"
+                    <Button Content="Stop" DockPanel.Dock="Top"
                   Command="{Binding StopCommand}"/>
-          <Grid
+                    <Grid
             DockPanel.Dock="Top">
-            <StackPanel DataContext="{Binding Reporters.SummaryReport}">
-              <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
-              <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
-              <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
-              <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
-            </StackPanel>
-          </Grid>
-          <!--<DataGrid
+                        <StackPanel DataContext="{Binding Reporters.SummaryReport}">
+                            <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                            <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                            <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                            <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+                        </StackPanel>
+                    </Grid>
+                    <!--<DataGrid
             ItemsSource="{Binding Strategy.Reporter.CumPL}"/>-->
-          <TextBlock DockPanel.Dock="Top"  Text="{Binding Status}"/>
-          <oxy:PlotView DockPanel.Dock="Top" Model="{Binding Reporters.ChartReport.PlotModel}"/>
-          
-        </DockPanel>
+                    <TextBlock DockPanel.Dock="Top"  Text="{Binding Status}"/>
+                    
 
-      </TabItem>
-      <TabItem Header ="IBTWS">
-        <ContentControl Content="{Binding IbtwsViewModel}"/>
-      </TabItem>
-    </TabControl>
+                    <oxy:PlotView DockPanel.Dock="Top" Model="{Binding Reporters.ChartReport.PlotModel}"/>
+
+                </DockPanel>
+
+            </TabItem>
+            <TabItem Header ="IBTWS">
+                <ContentControl Content="{Binding IbtwsViewModel}"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

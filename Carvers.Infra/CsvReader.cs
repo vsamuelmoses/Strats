@@ -113,9 +113,15 @@ namespace Carvers.Infra
         where T : class
     {
         private readonly Subject<T> stream;
-        public FileFeedService(FileInfo file, Func<string, T> ctr, TimeSpan streamSpeed)
+
+        public FileFeedService(FileInfo file, Func<string, T> ctr)
+            : this(file, ctr, null)
         {
-            //stream = new Subject<T>();
+        }
+
+        public FileFeedService(FileInfo file, Func<string, T> ctr, TimeSpan? streamSpeed)
+        {
+            stream = new Subject<T>();
 
             var feed = new FileFeed<T>(file.FullName, ctr);
 
@@ -126,9 +132,36 @@ namespace Carvers.Infra
             //        stream.Publish(feed.ReadNextLine());
             //    });
 
-            Stream = Observable
-                .Interval(streamSpeed)
-                .Select(val => feed.ReadNextLine());
+            if (streamSpeed.HasValue)
+            {
+                Stream = Observable
+                    .Interval(streamSpeed.Value)
+                    .Select(val => feed.ReadNextLine());
+            }
+            else
+            {
+                Stream = stream;
+
+                Task.Factory.StartNew(() =>
+                {
+                    
+
+                    while (true)
+                    {
+                        stream.OnNext(feed.ReadNextLine());
+
+
+                    //var toSend = fileFeeds
+                    //.Select(feed => Tuple.Create(feed, feed.PeekLine()))
+                    //.OrderBy(tup => tup.Item2.Timestamp)
+                    //.First()
+                    //.Item1.ReadNextLine();
+
+                    //if (toSend.Timestamp.UnixEpochToLocalTime() >= startTime)
+                    //    realTimeBarMsgSubject.OnNext(toSend);
+                    }
+                });
+            }
 
         }
 

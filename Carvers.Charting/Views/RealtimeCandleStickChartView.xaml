@@ -76,6 +76,7 @@
                          Grid.Column="1"
                          IsPanEnabled="true"
                          IsRubberBandZoomEnabled="true"
+                         Annotations="{Binding AnnotationCollection}"
                          RenderableSeries="{s:SeriesBinding SeriesViewModels}">
             <s:SciStockChart.Resources>
                 <Style x:Key="BaseRenderableSeriesStyle" TargetType="s:BaseRenderableSeries">

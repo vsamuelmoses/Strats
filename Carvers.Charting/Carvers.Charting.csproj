@@ -132,10 +132,25 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Annotations\BuyArrowAnnotation.cs" />
+    <Compile Include="Annotations\DownArrowAnnotation.xaml.cs" />
+    <Compile Include="Annotations\SellArrowAnnotation.cs" />
+    <Compile Include="Annotations\UpArrowAnnotation.xaml.cs">
+      <DependentUpon>UpArrowAnnotation.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ViewModels\BuySellAnnotationViewModel.cs" />
     <Compile Include="ViewModels\RealtimeCandleStickChartViewModel.cs" />
     <Compile Include="Views\RealtimeCandleStickChartView.xaml.cs">
       <DependentUpon>RealtimeCandleStickChartView.xaml</DependentUpon>
     </Compile>
+    <Page Include="Annotations\DownArrowAnnotation.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Annotations\UpArrowAnnotation.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="SciChartCandleStickExample.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

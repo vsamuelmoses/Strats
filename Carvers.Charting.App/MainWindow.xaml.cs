@@ -1,5 +1,10 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using Carvers.Charting.ViewModels;
+using Carvers.Infra;
+using Carvers.Infra.Extensions;
+using Carvers.Models;
+using Carvers.Models.DataReaders;
 
 namespace Carvers.Charting.App
 {
@@ -12,7 +17,12 @@ namespace Carvers.Charting.App
         {
             InitializeComponent();
 
-            RealtimeCandleStickViewModel = new RealtimeCandleStickChartViewModel();
+            var feed = new FileFeedService<Candle>(Paths.SampleCsvData,
+                str => CsvToModelCreators.CsvToFx1MinCandle(str.AsCsv()));
+
+            var agg = new AggreagateCandleFeed(feed.Stream, TimeSpan.FromHours(1));
+
+            RealtimeCandleStickViewModel = new RealtimeCandleStickChartViewModel(agg.Stream);
 
             DataContext = this;
         }

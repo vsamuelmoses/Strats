@@ -35,7 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SciChart.Charting, Version=5.1.1.11473, Culture=neutral, PublicKeyToken=b55dd9efe817e823, processorArchitecture=MSIL" />
+    <Reference Include="SciChart.Charting, Version=4.2.5.10565, Culture=neutral, PublicKeyToken=b55dd9efe817e823, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
@@ -100,6 +100,14 @@
     <ProjectReference Include="..\Carvers.Charting\Carvers.Charting.csproj">
       <Project>{8dc4e334-eb48-4daf-befe-f4273ced3726}</Project>
       <Name>Carvers.Charting</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Carvers.Infra\Carvers.Infra.csproj">
+      <Project>{3B8473F5-53EE-4C87-908B-2CF6FCFD39BB}</Project>
+      <Name>Carvers.Infra</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Carvers.Models\Carvers.Models.csproj">
+      <Project>{C3C7AF04-7D5F-4E34-8ED5-7D3BB7FD774E}</Project>
+      <Name>Carvers.Models</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

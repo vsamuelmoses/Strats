@@ -2,69 +2,83 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Windows.Input;
+using System.Windows.Media;
+using Carvers.Charting.Annotations;
 using Carvers.Infra;
 using Carvers.Infra.Extensions;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
+using Carvers.Models.Events;
 using Carvers.Models.Indicators;
 using SciChart.Charting.Model.ChartSeries;
 using SciChart.Charting.Model.DataSeries;
+using SciChart.Charting.Visuals.Annotations;
 using SciChart.Data.Model;
 
 namespace Carvers.Charting.ViewModels
 {
     public class RealtimeCandleStickChartViewModel : ViewModel
     {
-        //private readonly IMarketDataService _marketDataService;
         private readonly MovingAverage _sma50 = new MovingAverage(50);
         private readonly double _barTimeFrame = TimeSpan.FromMinutes(5).TotalSeconds;
         private Candle _lastCandle;
         private IndexRange _xVisibleRange;
         private string _selectedSeriesStyle;
         private ObservableCollection<IRenderableSeriesViewModel> _seriesViewModels;
+        private ObservableCollection<IAnnotationViewModel> _annotations;
 
-        public RealtimeCandleStickChartViewModel()
+        public RealtimeCandleStickChartViewModel(
+            IObservable<Candle> candleFeed,
+            IObservable<IEvent> eventsFeed = null)
         {
+            _annotations = new ObservableCollection<IAnnotationViewModel>();
+            Annotations = new AnnotationsSourceCollection(_annotations);
+            AnnotationCollection = new AnnotationCollection();
+
             _seriesViewModels = new ObservableCollection<IRenderableSeriesViewModel>();
-
-            // Market data service simulates live ticks. We want to load the chart with 150 historical bars
-            // then later do real-time ticking as new data comes in
-            //_marketDataService = new MarketDataService(new DateTime(2000, 08, 01, 12, 00, 00), 5, 20);
-
-            // Add ChartSeriesViewModels for the candlestick and SMA series
             var ds0 = new OhlcDataSeries<DateTime, double> { SeriesName = "Price Series" };
             _seriesViewModels.Add(new OhlcRenderableSeriesViewModel { DataSeries = ds0, StyleKey = "BaseRenderableSeriesStyle" });
 
             var ds1 = new XyDataSeries<DateTime, double> { SeriesName = "50-Period SMA" };
             _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds1, StyleKey = "LineStyle" });
 
-            // Append 150 historical bars to data series
-            //var prices = _marketDataService.GetHistoricalData(100);
-
-            //var prices = CsvReader.ReadFile(Paths.SampleCsvData, CsvToModelCreators.CsvToFx1MinCandle, skip: 0)
-            //    .Take(100);
-            //ds0.Append(
-            //    prices.Select(x => x.TimeStamp.DateTime),
-            //    prices.Select(x => x.Open),
-            //    prices.Select(x => x.High),
-            //    prices.Select(x => x.Low),
-            //    prices.Select(x => x.Close));
-
-            //ds1.Append(prices.Select(x => x.TimeStamp.DateTime), prices.Select(y => _sma50.Push(y.Close).Current));
-
-
-            var feed = new FileFeedService<Candle>(Paths.SampleCsvData, 
-                str => CsvToModelCreators.CsvToFx1MinCandle(str.AsCsv()), TimeSpan.FromSeconds(1));
-
-            var agg = new AggreagateCandleFeed(feed.Stream, TimeSpan.FromHours(1));
-
-            agg.Stream.Subscribe(c =>
+            candleFeed.ObserveOnDispatcher().Subscribe(c =>
             {
-                OnNewPrice(c); 
+                OnNewPrice(c);
+                //AnnotationCollection.Add(new SellArrowAnnotation { X1 = c.TimeStamp.DateTime, Y1 = c.Low });
             });
+
+            if (eventsFeed != null)
+            {
+                eventsFeed
+                    .ObserveOnDispatcher()
+                    .OfType<DateTimeEvent<IOrder>>()
+                    .Where(e => e.Event is BuyOrder || e.Event is BuyToCoverOrder)
+                    .Subscribe(e => AnnotationCollection.Add(
+                        new BuyArrowAnnotation {
+                            X1 = e.DateTimeOffset.DateTime,
+                            Y1 = e.Event.OrderInfo.Price.Value
+                        }));
+
+                eventsFeed
+                    .ObserveOnDispatcher()
+                    .OfType<DateTimeEvent<IOrder>>()
+                    .Where(e => e.Event is ShortSellOrder || e.Event is SellOrder)
+                    .Subscribe(e => AnnotationCollection.Add(
+                        new SellArrowAnnotation
+                        {
+                            X1 = e.DateTimeOffset.DateTime,
+                            Y1 = e.Event.OrderInfo.Price.Value
+                        }));
+            }
+
+
             SelectedSeriesStyle = "Ohlc";
+
+            
         }
 
         public ObservableCollection<IRenderableSeriesViewModel> SeriesViewModels
@@ -78,15 +92,6 @@ namespace Carvers.Charting.ViewModels
         }
 
         public double BarTimeFrame { get { return _barTimeFrame; } }
-
-        //public ICommand TickCommand
-        //{
-        //    get { return new RelayCommand(_ => OnNewPrice(_marketDataService.GetNextBar())); }
-        //}
-
-        //public ICommand StartUpdatesCommand { get { return new RelayCommand(_ => _marketDataService.SubscribePriceUpdate(OnNewPrice)); } }
-
-        //public ICommand StopUpdatesCommand { get { return new RelayCommand(_ => _marketDataService.ClearSubscriptions()); } }
 
         public IEnumerable<string> SeriesStyles { get { return new[] { "OHLC", "Candle", "Line", "Mountain" }; } }
 
@@ -179,5 +184,8 @@ namespace Carvers.Charting.ViewModels
                 _lastCandle = candle;
             }
         }
+
+        public AnnotationsSourceCollection Annotations { get; }
+        public AnnotationCollection AnnotationCollection { get; }
     }
 }

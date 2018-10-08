@@ -68,11 +68,14 @@
     <Compile Include="DataReaders\AggreagateCandleFeed.cs" />
     <Compile Include="DataReaders\CsvToModelCreators.cs" />
     <Compile Include="DirectoryUniverse.cs" />
+    <Compile Include="Events\DateTimeEvent.cs" />
+    <Compile Include="Events\OrderExecutedEvent.cs" />
     <Compile Include="Extensions\CandleExtensions.cs" />
     <Compile Include="Extensions\PriceExtension.cs" />
     <Compile Include="Extensions\StockDataExtensions.cs" />
     <Compile Include="Extensions\StringEntensions.cs" />
     <Compile Include="IClosedOrder.cs" />
+    <Compile Include="Events\IEvent.cs" />
     <Compile Include="Indicators\Condition.cs" />
     <Compile Include="Indicators\MovingAverage.cs" />
     <Compile Include="Indicators\SupportResistance.cs" />

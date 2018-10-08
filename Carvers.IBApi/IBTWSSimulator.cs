@@ -27,17 +27,23 @@ namespace Carvers.IBApi
         public IObservable<IBTWSConnectionState> IbtwsConnectionStateStream => ibtwsConnectionStateSubject;
 
         private readonly DateTimeOffset startTime;
+        private readonly DateTimeOffset endTime;
         private readonly Func<CurrencyPair, DateTimeOffset, string> filePathGetter;
 
 
         public bool IsConnected { get; private set; }
         public int NextOrderId { get; }
 
-
         public IBTWSSimulator(Func<CurrencyPair, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime)
+            : this(filePathGetter, startTime, DateTimeOffset.MaxValue)
+        { }
+
+        public IBTWSSimulator(Func<CurrencyPair, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime,
+            DateTimeOffset endTime)
         {
             this.filePathGetter = filePathGetter;
             this.startTime = startTime;
+            this.endTime = endTime;
 
             
             realTimeBarMsgSubject = new Subject<RealTimeBarMessage>();
@@ -91,6 +97,10 @@ namespace Carvers.IBApi
                     .OrderBy(tup => tup.Item2.Timestamp)
                     .First()
                     .Item1.ReadNextLine();
+
+                    if (toSend.Timestamp.UnixEpochToLocalTime() > endTime)
+                        return;
+
 
                     if(toSend.Timestamp.UnixEpochToLocalTime() >= startTime)
                         realTimeBarMsgSubject.OnNext(toSend);

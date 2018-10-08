@@ -1,14 +1,17 @@
-﻿using Carvers.IB.App;
+﻿using Carvers.Charting.ViewModels;
+using Carvers.IB.App;
 using Carvers.IBApi;
 using Carvers.IBApi.Extensions;
 using Carvers.Infra.Extensions;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
+using Carvers.Models.Events;
 using Carvers.Models.Indicators;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -63,7 +66,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         public BOVm()
         {
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter, new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
+
+            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter, 
+                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2017, 01, 04, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
@@ -98,6 +104,9 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var chartReport = new StrategyChartReport(new[] { Strategy }, Dispatcher.CurrentDispatcher);
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
+
+            ChartVm = new RealtimeCandleStickChartViewModel(Ibtws.RealTimeBarStream.Select(msg => msg.ToCandle(TimeSpan.FromMinutes(1))),
+                Strategy.OpenOrders.Select(order => new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
         }
 
         public ICommand StartCommand { get; }
@@ -115,6 +124,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             }
         }
         public Carvers.Infra.ViewModels.Reporters Reporters { get; }
+        public RealtimeCandleStickChartViewModel ChartVm { get; }
     }
 
 

@@ -156,6 +156,10 @@
       <Project>{66a99234-410b-4c12-9a8f-64985ebcc876}</Project>
       <Name>Carvers.Charting.App</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Carvers.Charting\Carvers.Charting.csproj">
+      <Project>{8dc4e334-eb48-4daf-befe-f4273ced3726}</Project>
+      <Name>Carvers.Charting</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Carvers.IB.App\Carvers.IB.App.csproj">
       <Project>{c8a448aa-996e-4b66-9cb2-3cf997a0e589}</Project>
       <Name>Carvers.IB.App</Name>
