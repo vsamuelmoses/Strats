@@ -75,6 +75,7 @@
     <Compile Include="IClosedOrder.cs" />
     <Compile Include="Indicators\Condition.cs" />
     <Compile Include="Indicators\MovingAverage.cs" />
+    <Compile Include="Indicators\SupportResistance.cs" />
     <Compile Include="IOpenOrder.cs" />
     <Compile Include="IOrder.cs" />
     <Compile Include="IOrderInfo.cs" />
