@@ -254,14 +254,14 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 08, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
             var interestedPairs = new[] {CurrencyPair.GBPUSD};
 
             Strategy = new Strategy("Simple Breakout");
-            var context = new StrategyContext(Strategy, new Lookback(10, new ConcurrentQueue<Candle>()),
+            var context = new StrategyContext(Strategy, new Lookback(240, new ConcurrentQueue<Candle>()),
                 ImmutableList.Create<IContextInfo>(new[] {new EmptyContext()}));
 
             var nextCondition = SimpleBreakoutStrategy.Strategy;
@@ -331,8 +331,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         private static Func<FuncCondition<StrategyContext>> entryCondition = () =>
             new FuncCondition<StrategyContext>(
-                onSuccess: exitCondition, 
-                onFailure: entryCondition, 
+                onSuccess: exitCondition,
+                onFailure: entryCondition,
                 predicates: new List<Func<StrategyContext, bool>>()
                 {
                     {
@@ -367,13 +367,23 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             var closedAboveHigh = ctx.Lb.LastCandle.ClosedAboveHigh(hCandle);
                             var closedBelowLow = ctx.Lb.LastCandle.ClosedBelowLow(lCandle);
 
-                            if (!closedAboveHigh || !closedBelowLow)
+                            if (!closedAboveHigh && !closedBelowLow)
                                 return false;
-                            
-                            if(closedAboveHigh && highIndex < ctx.Lb.Count / 3)
-                                return true;
 
-                            if(closedBelowLow && lowIndex < ctx.Lb.Count / 3)
+                            var lbSingleCandle = ctx.Lb.Candles.TakeWhile(c => c != ctx.Lb.LastCandle).ToSingleCandle(TimeSpan.FromHours(4));
+
+                            if(closedAboveHigh && highIndex < ctx.Lb.Count / 3)
+                            {
+                                var target = ctx.Lb.LastCandle.Close - lbSingleCandle.Low;
+
+                                if(CandleSentiment.Of(lbSingleCandle)  == CandleSentiment.Green
+                                    /*&& lbSingleCandle.AbsBodyLength() >= target*/)
+                                    return true;
+
+                            }
+
+                            if(closedBelowLow && lowIndex < ctx.Lb.Count / 3
+                                && CandleSentiment.Of(lbSingleCandle)  == CandleSentiment.Red)
                                 return true;
 
                             return false;
@@ -387,13 +397,13 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
                     if (closedAboveHigh)
                         return ctx.PlaceOrder(ctx.Lb.LastCandle, Side.Buy)
-                            .AddContextInfo(new EntryContextInfo(ctx.Lb.LastCandle,
+                            .AddContextInfo(new SimpleBreakoutEntryContext(ctx.Lb.LastCandle,
                                 ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.High).TakeLast(2).First(),
                                 ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.Low).Take(2).Last()));
 
                     if (closedBelowLow)
                         return ctx.PlaceOrder(ctx.Lb.LastCandle, Side.ShortSell)
-                            .AddContextInfo(new EntryContextInfo(ctx.Lb.LastCandle,
+                            .AddContextInfo(new SimpleBreakoutEntryContext(ctx.Lb.LastCandle,
                                 ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.High).TakeLast(2).First(),
                                 ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.Low).Take(2).Last()));
 
@@ -408,17 +418,17 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 predicate: context =>
                 {
                     var candle = context.Lb.LastCandle;
-                    var entryContext = context.Infos.OfType<EntryContextInfo>().Single();
+                    var entryContext = context.Infos.OfType<SimpleBreakoutEntryContext>().Single();
                     if (context.Strategy.OpenOrder is BuyOrder)
                     {
                         var target = entryContext.EntryCandle.Close - entryContext.LCandle.Low;
-                        return context.CloseOrderOnTargetReached(target);
+                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target);
                     }
 
                     if (context.Strategy.OpenOrder is ShortSellOrder)
                     {
                         var target = entryContext.HCandle.High - entryContext.EntryCandle.Close;
-                        return context.CloseOrderOnTargetReached(target);
+                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target);
                     }
 
                     throw new Exception("Unexpected error");
@@ -426,6 +436,14 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
 
         public static Func<FuncCondition<StrategyContext>> Strategy = contextReadyCondition;
+    }
+
+    public class SimpleBreakoutEntryContext : EntryContextInfo
+    {
+        public SimpleBreakoutEntryContext(Candle entryCandle, Candle hCandle, Candle lCandle) 
+            : base(entryCandle, hCandle, lCandle)
+        {
+        }
     }
 }
 

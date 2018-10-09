@@ -528,7 +528,7 @@ namespace Carvers.Models.Indicators
             Func<FuncCondition<StrategyContext>> onFailure)
             : base(onSuccess,
                   onFailure,
-                  predicate: context => context.CloseOrderOnTargetReached(target))
+                  predicate: context => context.CloseOrderOnTargetReached(context.Infos.OfType<EntryContextInfo>().Single(), target))
         {
         }
     }
@@ -625,11 +625,10 @@ namespace Carvers.Models.Indicators
             throw new Exception("unexpected error");
         }
 
-        public static bool CloseOrderOnTargetReached(this StrategyContext context, double target)
+        public static bool CloseOrderOnTargetReached(this StrategyContext context, EntryContextInfo entryContext, double target)
         {
             var candle = context.Lb.LastCandle;
-            var entryContext = context.Infos.OfType<EntryContextInfo>().Single();
-
+            
             var movement = Math.Abs(candle.Ohlc.Close.Value - entryContext.EntryCandle.Ohlc.Close.Value);
             if (movement >= target)
             {
