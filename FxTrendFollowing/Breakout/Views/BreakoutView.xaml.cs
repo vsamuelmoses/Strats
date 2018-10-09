@@ -13,7 +13,8 @@ namespace FxTrendFollowing.Breakout.Views
             InitializeComponent();
 
             //DataContext = new BreakoutViewModel();
-            DataContext = new BOVm();
+            //DataContext = new BOVm();
+            DataContext = new SimpleBreakout();
         }
     }
 }

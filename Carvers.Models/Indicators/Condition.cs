@@ -442,7 +442,7 @@ namespace Carvers.Models.Indicators
                       var lastCandle = context.Lb.LastCandle;
                       var candleSentiment = CandleSentiment.Of(context.Lb.LastCandle);
 
-                      return context.PlaceOrderInlineCandleSentiment(lastCandle, candleSentiment.ToSide());
+                      return context.PlaceOrder(lastCandle, candleSentiment.ToSide());
                   })
         {
         }
@@ -603,10 +603,8 @@ namespace Carvers.Models.Indicators
 
     public static class StrategyContextHelper
     {
-        public static StrategyContext PlaceOrderInlineCandleSentiment(this StrategyContext context, Candle lastCandle, Side side)
+        public static StrategyContext PlaceOrder(this StrategyContext context, Candle lastCandle, Side side)
         {
-
-
             if (side == Side.ShortSell)
             {
                 var shortSellOrder = new ShortSellOrder(
