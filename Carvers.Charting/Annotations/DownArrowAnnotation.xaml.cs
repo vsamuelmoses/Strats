@@ -1,5 +1,6 @@
 ﻿using SciChart.Charting.Visuals.Annotations;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Carvers.Charting.Annotations
@@ -7,7 +8,7 @@ namespace Carvers.Charting.Annotations
     /// <summary>
     /// Interaction logic for ArrowAnnotation.xaml
     /// </summary>
-    public partial class DownArrowAnnotation : CustomAnnotationForMvvm
+    public partial class DownArrowAnnotation : CustomAnnotation
     {
         public DownArrowAnnotation()
         {

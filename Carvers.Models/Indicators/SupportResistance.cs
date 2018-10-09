@@ -1,8 +1,17 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Linq;
+using System.Reactive.Linq;
+using Carvers.Models.Events;
+using Carvers.Models.Extensions;
 
 namespace Carvers.Models.Indicators
 {
+    public class DailyHighLowIndicator : IEvent
+    {
+        
+    }
+
     public class SupportResistance
     {
         public SupportResistance(Line<DateTimeOffset, double> support, Line<DateTimeOffset, double> resistance)

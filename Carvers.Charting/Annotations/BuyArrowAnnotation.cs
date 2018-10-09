@@ -2,7 +2,6 @@
 
 namespace Carvers.Charting.Annotations
 {
-
     public class BuyArrowAnnotation : UpArrowAnnotation
     {
         public BuyArrowAnnotation()

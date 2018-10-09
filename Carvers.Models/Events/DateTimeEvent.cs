@@ -2,7 +2,6 @@
 
 namespace Carvers.Models.Events
 {
-
     public class DateTimeEvent<T> : IEvent
     {
         public DateTimeEvent(DateTimeOffset dateTimeOffset, T anEvent)
@@ -14,6 +13,4 @@ namespace Carvers.Models.Events
         public T Event { get; }
         public DateTimeOffset DateTimeOffset { get; }
     }
-    
-
 }

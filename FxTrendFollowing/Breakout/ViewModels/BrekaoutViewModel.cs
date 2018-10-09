@@ -14,6 +14,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Carvers.Models.Extensions;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
@@ -69,15 +70,17 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter, 
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 01, 04, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
             var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             Strategy = new Strategy("MomentumBO");
-            var context = new StrategyContext(Strategy, new Lookback(30, new ConcurrentQueue<Candle>()), ImmutableList.Create<IContextInfo>(new[] { new EmptyContext() }));
+            var context = new StrategyContext(Strategy, new Lookback(5 * 480, new ConcurrentQueue<Candle>()), ImmutableList.Create<IContextInfo>(new[] { new EmptyContext() }));
             var nextCondition = BOStrategyWithFractals.Strategy;
+
+            var candleStream = Ibtws.RealTimeBarStream.Select(msg => msg.ToCandle(TimeSpan.FromMinutes(1)));
 
             //TODO: for manual feed, change the candle span
             Ibtws.RealTimeBarStream.Subscribe(msg =>
@@ -105,8 +108,15 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
-            ChartVm = new RealtimeCandleStickChartViewModel(Ibtws.RealTimeBarStream.Select(msg => msg.ToCandle(TimeSpan.FromMinutes(1))),
-                Strategy.OpenOrders.Select(order => new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
+            ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
+                Strategy
+                    .OpenOrders
+                    .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
+
+            //Merge(
+            //    candleStream
+            //        .Where(c => c.TimeStamp.TimeOfDay == TimeSpan.FromHours(9.5))
+            //        .Select(c => new MarketOpeningIndicator(c.TimeStamp, c)))
         }
 
         public ICommand StartCommand { get; }

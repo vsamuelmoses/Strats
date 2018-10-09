@@ -8,7 +8,7 @@ namespace Carvers.Charting.Annotations
     /// <summary>
     /// Interaction logic for UpArrowAnnotation.xaml
     /// </summary>
-    public partial class UpArrowAnnotation : CustomAnnotationForMvvm
+    public partial class UpArrowAnnotation : CustomAnnotation
     {
         public UpArrowAnnotation()
         {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using Carvers.Infra.Extensions;
 
 namespace Carvers.Models.Extensions
@@ -50,6 +51,12 @@ namespace Carvers.Models.Extensions
                     .Select(candleGroup => new DailyCandle(candleGroup.Cast<Candle>().ToSingleOhlc(), candleGroup.First().TimeStamp));
         }
 
+        public static IObservable<Candle> ToDailyCandleStream(this IObservable<Candle> candles)
+        {
+            return candles
+                .Buffer(candles.Select(c1 => c1.TimeStamp.Date).DistinctUntilChanged())
+                .Select(c => c.ToDailyCandles().Single());
+        }
 
         public static Ohlc ToSingleOhlc(this IEnumerable<Candle> candles)
         {

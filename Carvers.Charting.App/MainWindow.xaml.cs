@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Reactive.Linq;
 using System.Windows;
 using Carvers.Charting.ViewModels;
 using Carvers.Infra;
 using Carvers.Infra.Extensions;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
+using Carvers.Models.Events;
 
 namespace Carvers.Charting.App
 {
@@ -22,7 +24,11 @@ namespace Carvers.Charting.App
 
             var agg = new AggreagateCandleFeed(feed.Stream, TimeSpan.FromHours(1));
 
-            RealtimeCandleStickViewModel = new RealtimeCandleStickChartViewModel(agg.Stream);
+            RealtimeCandleStickViewModel = new RealtimeCandleStickChartViewModel(agg.Stream, 
+                agg
+                    .Stream
+                    .Where(c => c.TimeStamp.Hour == 9)
+                    .Select(c => new MarketOpeningIndicator(c.TimeStamp, c)));
 
             DataContext = this;
         }
