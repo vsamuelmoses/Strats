@@ -88,6 +88,23 @@
                     <Setter Property="AntiAliasing" Value="{Binding ElementName=UseAntiAliasing, Path=IsChecked}"/>
                     <Setter Property="StrokeThickness" Value="{Binding ElementName=StrokeThicknesses, Path=SelectedItem}"/>
                 </Style>
+
+                <Style x:Key="LightYellowLineStyle" TargetType="s:FastLineRenderableSeries">
+                    <Setter Property="Stroke" Value="LightGoldenrodYellow"/>
+                    <Setter Property="AntiAliasing" Value="{Binding ElementName=UseAntiAliasing, Path=IsChecked}"/>
+                    <Setter Property="StrokeThickness" Value="{Binding ElementName=StrokeThicknesses, Path=SelectedItem}"/>
+                </Style>
+                
+
+                <Style x:Key="WhiteLineStyle" TargetType="s:FastLineRenderableSeries"
+                       BasedOn="{StaticResource LineStyle}">
+                    <Setter Property="Stroke" Value="White"/>
+                </Style>
+                <Style x:Key="AquaLineStyle" TargetType="s:FastLineRenderableSeries"
+                       BasedOn="{StaticResource LineStyle}">
+                    <Setter Property="Stroke" Value="Aqua"/>
+                </Style>
+
             </s:SciStockChart.Resources>
 
             <!--  Override any properties of the built-in CategoryDateTimeAxis  -->

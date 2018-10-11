@@ -44,9 +44,9 @@
     <Reference Include="MahApps.Metro, Version=1.6.5.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MahApps.Metro.1.6.5\lib\net47\MahApps.Metro.dll</HintPath>
     </Reference>
-    <Reference Include="SciChart.Charting, Version=5.1.1.11473, Culture=neutral, PublicKeyToken=b55dd9efe817e823, processorArchitecture=MSIL">
+    <Reference Include="SciChart.Charting, Version=4.2.5.10565, Culture=neutral, PublicKeyToken=b55dd9efe817e823, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\SciChart Ltd\SciChart SDK\Lib\net47\SciChart.Charting.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\SciChart Ltd\SciChart SDK\Lib\net46\SciChart.Charting.dll</HintPath>
     </Reference>
     <Reference Include="SciChart.Core, Version=5.1.1.11473, Culture=neutral, PublicKeyToken=b55dd9efe817e823, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

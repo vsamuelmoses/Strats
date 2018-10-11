@@ -109,14 +109,19 @@ namespace FxTrendFollowing.Breakout.ViewModels
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
             ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
+
                 Strategy
-                    .OpenOrders
+                    .CloseddOrders
                     .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
 
-            //Merge(
-            //    candleStream
-            //        .Where(c => c.TimeStamp.TimeOfDay == TimeSpan.FromHours(9.5))
-            //        .Select(c => new MarketOpeningIndicator(c.TimeStamp, c)))
+            //Strategy
+            //    .OpenOrders
+            //    .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
+            //    .Merge(
+            //        Strategy
+            //            .CloseddOrders
+            //            .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))));
+
         }
 
         public ICommand StartCommand { get; }
@@ -261,7 +266,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] {CurrencyPair.GBPUSD};
 
             Strategy = new Strategy("Simple Breakout");
-            var context = new StrategyContext(Strategy, new Lookback(240, new ConcurrentQueue<Candle>()),
+            var context = new StrategyContext(Strategy, new Lookback(4*60, new ConcurrentQueue<Candle>()),
                 ImmutableList.Create<IContextInfo>(new[] {new EmptyContext()}));
 
             var nextCondition = SimpleBreakoutStrategy.Strategy;
@@ -292,9 +297,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
             ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
-                Strategy
-                    .OpenOrders
-                    .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
+                Strategy.OpenOrders
+                        .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
+                    .Merge(Strategy.CloseddOrders
+                            .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))));
         }
 
         public ICommand StartCommand { get; }
