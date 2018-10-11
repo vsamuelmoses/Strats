@@ -7,15 +7,14 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Subjects;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Threading;
 
 namespace Carvers.Models.Indicators
 {
     public interface IContext
     {
+        Strategy Strategy { get; }
 
+        IContext Add(Candle candle);
     }
 
     public static class Extensions
@@ -127,6 +126,11 @@ namespace Carvers.Models.Indicators
             Infos = contextInfos;
         }
 
+        public IContext Add(Candle candle)
+        {
+            return new StrategyContext(Strategy, Lb.Add(candle), Infos);
+        }
+
         public Lookback Lb { get; }
         public Strategy Strategy { get; }
         public ImmutableList<IContextInfo> Infos { get; }
@@ -196,20 +200,6 @@ namespace Carvers.Models.Indicators
         public bool IsSuccess { get; }
     }
 
-
-    public static class ConditionExtensions
-    {
-        public static IContext Add(this IContext context, Candle candle)
-        {
-            switch (context)
-            {
-                case StrategyContext sc:
-                    return new StrategyContext(sc.Strategy, sc.Lb.Add(candle), sc.Infos);
-                default:
-                    throw new Exception("Unexpected");
-            }
-        }
-    }
 
     public static class BooleanIndicators
     {
@@ -600,6 +590,8 @@ namespace Carvers.Models.Indicators
         public static Fractol Null = new Fractol("Null");
         private Fractol(string description) { }
     }
+
+    
 
     public static class StrategyContextHelper
     {

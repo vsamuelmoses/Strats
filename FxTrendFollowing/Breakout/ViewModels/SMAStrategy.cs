@@ -14,8 +14,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Carvers.Infra.Math.Geometry;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
@@ -35,7 +37,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             Strategy = new Strategy("Simple Breakout");
-            var context = new SMAContext(new MovingAverage(50), new MovingAverage(100), new MovingAverage(250), new MovingAverage(3600));
+            var context = new SMAContext(Strategy, new MovingAverage(50), new MovingAverage(100), new MovingAverage(250), new MovingAverage(3600));
 
             var nextCondition = SMAStrategy.Strategy;
 
@@ -93,6 +95,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
     public static class SMAStrategy
     {
+        
+        
         private static Func<FuncCondition<SMAContext>> contextReadyCondition = () =>
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
@@ -103,92 +107,142 @@ namespace FxTrendFollowing.Breakout.ViewModels
             new FuncCondition<SMAContext>(
                 onSuccess: exitCondition,
                 onFailure: entryCondition,
-                predicates: new List<Func<StrategyContext, bool>>()
+                predicates: new List<Func<SMAContext, bool>>()
                 {
                     {
                         ctx =>
                         {
-                            if()
+                            var sma3600Line = ctx.Sma3600.Buffer.GetLine(3);
+                            var sma100Line = ctx.Sma100.Buffer.GetLine(3);
+
+                            return !sma3600Line.HasSameStartPoint(sma100Line)
+                                   && !sma3600Line.HasSameEndPoint(sma100Line) 
+                                   && sma3600Line.IntersectionPoint(sma100Line).IsSuccess;
                         }
                     }
                 },
                 onSuccessAction: ctx =>
                 {
-                    var closedAboveHigh = ctx.Lb.LastCandle == ctx.Lb.HighCandle;
-                    var closedBelowLow = ctx.Lb.LastCandle == ctx.Lb.LowCandle;
+                    if (ctx.Sma3600.Buffer.Last() < ctx.Sma100.Buffer.Last())
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy);
 
-                    if (closedAboveHigh)
-                        return ctx.PlaceOrder(ctx.Lb.LastCandle, Side.Buy)
-                            .AddContextInfo(new SimpleBreakoutEntryContext(ctx.Lb.LastCandle,
-                                ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.High).TakeLast(2).First(),
-                                ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.Low).Take(2).Last()));
-
-                    if (closedBelowLow)
-                        return ctx.PlaceOrder(ctx.Lb.LastCandle, Side.ShortSell)
-                            .AddContextInfo(new SimpleBreakoutEntryContext(ctx.Lb.LastCandle,
-                                ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.High).TakeLast(2).First(),
-                                ctx.Lb.Candles.OrderBy(candle => candle.Ohlc.Low).Take(2).Last()));
+                    if (ctx.Sma3600.Buffer.Last() > ctx.Sma100.Buffer.Last())
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell);
 
                     throw new Exception("Unexpected");
-
                 });
 
-        private static Func<FuncCondition<StrategyContext>> exitCondition = () =>
-            new FuncCondition<StrategyContext>(
+        private static Func<FuncCondition<SMAContext>> exitCondition = () =>
+            new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
                 onFailure: exitCondition,
-                predicate: context =>
+                predicates: new List<Func<SMAContext, bool>>()
                 {
-                    var candle = context.Lb.LastCandle;
-                    var entryContext = context.Infos.OfType<SimpleBreakoutEntryContext>().Single();
-                    if (context.Strategy.OpenOrder is BuyOrder)
                     {
-                        var target = entryContext.EntryCandle.Close - entryContext.LCandle.Low;
-                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target);
+                        ctx =>
+                        {
+                            var sma250Line = ctx.Sma250.Buffer.GetLine(3);
+                            var sma50Line = ctx.Sma50.Buffer.GetLine(3);
+
+                            if (ctx.Strategy.OpenOrder is BuyOrder)
+                            {
+                                return sma50Line.IntersectionPoint(sma250Line).IsSuccess
+                                       && ctx.Sma50.Buffer.Last() < ctx.Sma250.Buffer.Last();
+                            }
+
+                            if (ctx.Strategy.OpenOrder is ShortSellOrder)
+                            {
+                                return sma50Line.IntersectionPoint(sma250Line).IsSuccess
+                                       && ctx.Sma50.Buffer.Last() > ctx.Sma250.Buffer.Last();
+                            }
+
+                            throw new Exception("Unexpected error");
+                        }
+                    }
+                },
+                onSuccessAction: ctx =>
+                {
+                    if (ctx.Strategy.OpenOrder is BuyOrder)
+                    {
+                        var candle = ctx.LastCandle;
+                        ctx.Strategy.Close(
+                            new SellOrder((BuyOrder)ctx.Strategy.OpenOrder,
+                                new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, ctx.Strategy, candle.Ohlc.Close, 100000, candle)));
+                        return ctx;
                     }
 
-                    if (context.Strategy.OpenOrder is ShortSellOrder)
+                    if (ctx.Strategy.OpenOrder is ShortSellOrder)
                     {
-                        var target = entryContext.HCandle.High - entryContext.EntryCandle.Close;
-                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target);
+                        var candle = ctx.LastCandle;
+                        ctx.Strategy.Close(
+                            new BuyToCoverOrder((ShortSellOrder)ctx.Strategy.OpenOrder,
+                                new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, ctx.Strategy, candle.Ohlc.Close, 100000, candle)));
+                        return ctx;
                     }
 
                     throw new Exception("Unexpected error");
                 });
 
 
-        public static Func<FuncCondition<StrategyContext>> Strategy = contextReadyCondition;
+        public static Func<FuncCondition<SMAContext>> Strategy = contextReadyCondition;
     }
 
     public class SMAContext : IContext
     {
-        private List<MovingAverage> smas;
-        public SMAContext(MovingAverage sma50, 
+        private readonly List<MovingAverage> smas;
+        public SMAContext(Strategy strategy, 
+            MovingAverage sma50, 
             MovingAverage sma100,
             MovingAverage sma250,
             MovingAverage sma3600)
         {
+            Strategy = strategy;
             Sma50 = sma50;
             Sma100 = sma100;
             Sma250 = sma250;
             Sma3600 = sma3600;
 
             smas = new List<MovingAverage> { Sma50, Sma100, Sma250, Sma3600 };
-
         }
 
-        public SMAContext Update(Candle candle)
+        public IContext Add(Candle candle)
         {
+            LastCandle = candle;
             smas.Foreach(sma => sma.Push(candle.Close));
             return this;
         }
 
-        public bool IsReady()
-            => smas.All(sma => sma.Current != double.NaN);
+        public Candle LastCandle { get; private set; }
 
+        public bool IsReady()
+            => smas.All(sma => !double.IsNaN(sma.Current));
+
+        public Strategy Strategy { get; }
         public MovingAverage Sma50 { get; private set; }
         public MovingAverage Sma100 { get; private set; }
         public MovingAverage Sma250 { get; private set; }
         public MovingAverage Sma3600 { get; private set; }
+    }
+
+    public static class ContextExtensions
+    {
+        public static SMAContext PlaceOrder(this SMAContext context, Candle lastCandle, Side side)
+        {
+            if (side == Side.ShortSell)
+            {
+                context.Strategy.Open(new ShortSellOrder(
+                    new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close, 100000)));
+                return context;
+            }
+
+            if (side == Side.Buy)
+            {
+                context.Strategy.Open(new BuyOrder(
+                    new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close, 100000)));
+                return context;
+            }
+
+            throw new Exception("unexpected error");
+        }
     }
 }

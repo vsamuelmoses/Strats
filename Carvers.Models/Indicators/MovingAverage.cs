@@ -1,4 +1,6 @@
-﻿namespace Carvers.Models.Indicators
+﻿using System.Collections.Generic;
+
+namespace Carvers.Models.Indicators
 {
     public class MovingAverage
     {
@@ -79,7 +81,8 @@
             return this;
         }
 
-        public int Length { get { return _length; } }
-        public double Current { get { return _current; } }
+        public IEnumerable<double> Buffer => _circularBuffer;
+        public int Length => _length;
+        public double Current => _current;
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Carvers.Infra.Math.Geometry;
 
 namespace Carvers.Infra.Extensions
 {
@@ -50,6 +51,12 @@ namespace Carvers.Infra.Extensions
                 .Zip(Enumerable.Range(0, enumerable.Count), (s, r) => new { Group = r / itemsPerGroup, Item = s })
                 .GroupBy(i => i.Group, g => g.Item)
                 .ToList();
+        }
+
+        public static Line<double, double> GetLine(this IEnumerable<double> values, int approximation)
+        {
+            var approximatedValues = values.TakeLast(approximation).ToList();
+            return new Line<double, double>(1d, approximatedValues.First(), 2d, approximatedValues.Last());
         }
     }
 }
