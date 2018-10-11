@@ -1,22 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Carvers.Models.Indicators
 {
     public class MovingAverage
     {
+        private readonly int cacheSize;
         private readonly int _length;
         private int _circIndex = -1;
         private bool _filled;
-        private double _current = double.NaN;
+        //private double _current = double.NaN;
         private readonly double _oneOverLength;
         private readonly double[] _circularBuffer;
         private double _total;
+        private double _current;
 
-        public MovingAverage(int length)
+        public ConcurrentQueue<double> Averages { get; private set; }
+
+        public MovingAverage(int length, int cacheSize = 1)
         {
             _length = length;
             _oneOverLength = 1.0 / length;
             _circularBuffer = new double[length];
+
+            Averages = new ConcurrentQueue<double>();
+            this.cacheSize = cacheSize;
+
+            Current = double.NaN;
         }
 
         public MovingAverage Update(double value)
@@ -32,7 +42,7 @@ namespace Carvers.Models.Indicators
             // If not yet filled, just return. Current value should be double.NaN
             if (!_filled)
             {
-                _current = double.NaN;
+                Current = double.NaN;
                 return this;
             }
 
@@ -43,7 +53,7 @@ namespace Carvers.Models.Indicators
                 average += _circularBuffer[i];
             }
 
-            _current = average * _oneOverLength;
+            Current = average * _oneOverLength;
 
             return this;
         }
@@ -67,7 +77,7 @@ namespace Carvers.Models.Indicators
             // If not yet filled, just return. Current value should be double.NaN
             if (!_filled && _circIndex != _length - 1)
             {
-                _current = double.NaN;
+                Current = double.NaN;
                 return this;
             }
             else
@@ -76,13 +86,27 @@ namespace Carvers.Models.Indicators
                 _filled = true;
             }
 
-            _current = _total * _oneOverLength;
+            Current = _total * _oneOverLength;
 
             return this;
         }
 
-        public IEnumerable<double> Buffer => _circularBuffer;
         public int Length => _length;
-        public double Current => _current;
+        public double Current
+        {
+            get { return _current; }
+            private set
+            {
+                _current = value;
+
+                if (Averages.Count == cacheSize)
+                {
+                    double av;
+                    Averages.TryDequeue(out av);
+                }
+
+                Averages.Enqueue(_current);
+            }
+        }
     }
 }

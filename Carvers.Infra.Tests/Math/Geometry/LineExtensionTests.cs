@@ -17,7 +17,7 @@ namespace Carvers.Infra.Tests.Math.Geometry
                 var line1 = new Line<double, double>(1d, 1d, 2d, 2d);
                 var line2 = new Line<double, double>(1d, 1d, 2d, 2d);
 
-                line1.IntersectionPoint(line2).IsFailure.Should().BeTrue();
+                line1.IntersectionPoint(line2).Item1.IsFailure.Should().BeTrue();
             }
 
             [TestMethod]
@@ -26,7 +26,7 @@ namespace Carvers.Infra.Tests.Math.Geometry
                 var line1 = new Line<double, double>(1d, 1d, 2d, 2d);
                 var line2 = new Line<double, double>(1d, 2d, 2d, 3d);
 
-                line1.IntersectionPoint(line2).IsFailure.Should().BeTrue();
+                line1.IntersectionPoint(line2).Item1.IsFailure.Should().BeTrue();
             }
 
             [TestMethod]
@@ -36,20 +36,24 @@ namespace Carvers.Infra.Tests.Math.Geometry
                 var line2 = new Line<double, double>(2d, 3d, 2d, 1d);
 
                 var intersectionPoint = line1.IntersectionPoint(line2);
-                intersectionPoint.IsSuccess.Should().BeTrue();
+                intersectionPoint.Item1.IsSuccess.Should().BeTrue();
 
-                intersectionPoint.ValueOrDefault().X.Should().Be(2d);
-                intersectionPoint.ValueOrDefault().Y.Should().Be(2d);
+                intersectionPoint.Item1.ValueOrDefault().X.Should().Be(2d);
+                intersectionPoint.Item1.ValueOrDefault().Y.Should().Be(2d);
+
+                intersectionPoint.Item2.Should().NeTrue();
             }
 
             [TestMethod]
-            public void ShouldHaveNoIntersectionPointIfTheLinesAreDivergingFromOnePoint()
+            public void ShouldHaveIntersectionPointIfTheLineSegmentsAreNotIntersectingButTheLinesIntersect()
             {
                 var line1 = new Line<double, double>(1d, 1d, 4d, 4d);
                 var line2 = new Line<double, double>(2.5d, 3d, 2d, 4d);
 
                 var intersectionPoint = line1.IntersectionPoint(line2);
-                intersectionPoint.IsFailure.Should().BeTrue();
+                intersectionPoint.Item1.IsSuccess.Should().BeTrue();
+
+                intersectionPoint.Item2.Should().BeFalse();
             }
         }
     }
