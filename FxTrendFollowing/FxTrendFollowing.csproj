@@ -85,6 +85,8 @@
     </ApplicationDefinition>
     <Compile Include="Breakout\ViewModels\BrekaoutViewModel.cs" />
     <Compile Include="Breakout\ViewModels\CandleSentimentEvaluator.cs" />
+    <Compile Include="Breakout\ViewModels\SimpleBreakout.cs" />
+    <Compile Include="Breakout\ViewModels\SMAStrategy.cs" />
     <Compile Include="Breakout\Views\BreakoutView.xaml.cs">
       <DependentUpon>BreakoutView.xaml</DependentUpon>
     </Compile>

@@ -19,11 +19,12 @@ using System.Windows.Threading;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
-    public class SMAStrategyViewModel : ViewModel
+
+    public class SimpleBreakout : ViewModel
     {
         private string _status;
 
-        public SMAStrategyViewModel()
+        public SimpleBreakout()
         {
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
@@ -35,9 +36,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             Strategy = new Strategy("Simple Breakout");
-            var context = new SMAContext(new MovingAverage(50), new MovingAverage(100), new MovingAverage(250), new MovingAverage(3600));
+            var context = new StrategyContext(Strategy, new Lookback(4 * 60, new ConcurrentQueue<Candle>()),
+                ImmutableList.Create<IContextInfo>(new[] { new EmptyContext() }));
 
-            var nextCondition = SMAStrategy.Strategy;
+            var nextCondition = SimpleBreakoutStrategy.Strategy;
 
             var candleStream = Ibtws.RealTimeBarStream.Select(msg => msg.ToCandle(TimeSpan.FromMinutes(1)));
 
@@ -91,16 +93,19 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public RealtimeCandleStickChartViewModel ChartVm { get; }
     }
 
-    public static class SMAStrategy
+    public static class SimpleBreakoutStrategy
     {
-        private static Func<FuncCondition<SMAContext>> contextReadyCondition = () =>
-            new FuncCondition<SMAContext>(
+        public static BoStrategyOptions Options = new BoStrategyOptions(10d / 100000, 50d / 100000, 50d / 100000);
+
+
+        private static Func<FuncCondition<StrategyContext>> contextReadyCondition = () =>
+            new FuncCondition<StrategyContext>(
                 onSuccess: entryCondition,
                 onFailure: contextReadyCondition,
-                predicate: context => context.IsReady());
+                predicate: context => context.Lb.IsComplete());
 
-        private static Func<FuncCondition<SMAContext>> entryCondition = () =>
-            new FuncCondition<SMAContext>(
+        private static Func<FuncCondition<StrategyContext>> entryCondition = () =>
+            new FuncCondition<StrategyContext>(
                 onSuccess: exitCondition,
                 onFailure: entryCondition,
                 predicates: new List<Func<StrategyContext, bool>>()
@@ -108,7 +113,55 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     {
                         ctx =>
                         {
-                            if()
+
+                            Candle lCandle = ctx.Lb.Candles.First();
+                            Candle hCandle = ctx.Lb.Candles.First();
+                            var lowIndex = 0;
+                            var highIndex = 0;
+                            var candleIndex = 0;
+                            foreach (var c in ctx.Lb.Candles)
+                            {
+                                if (c == ctx.Lb.LastCandle)
+                                    continue;
+
+                                if (c.Low < lCandle.Low)
+                                {
+                                    lowIndex = candleIndex;
+                                    lCandle = c;
+                                }
+
+                                if (c.High > hCandle.High)
+                                {
+                                    highIndex = candleIndex;
+                                    hCandle = c;
+                                }
+
+                                candleIndex++;
+                            }
+
+                            var closedAboveHigh = ctx.Lb.LastCandle.ClosedAboveHigh(hCandle);
+                            var closedBelowLow = ctx.Lb.LastCandle.ClosedBelowLow(lCandle);
+
+                            if (!closedAboveHigh && !closedBelowLow)
+                                return false;
+
+                            var lbSingleCandle = ctx.Lb.Candles.TakeWhile(c => c != ctx.Lb.LastCandle).ToSingleCandle(TimeSpan.FromHours(4));
+
+                            if(closedAboveHigh && highIndex < ctx.Lb.Count / 3)
+                            {
+                                var target = ctx.Lb.LastCandle.Close - lbSingleCandle.Low;
+
+                                if(CandleSentiment.Of(lbSingleCandle)  == CandleSentiment.Green
+                                    /*&& lbSingleCandle.AbsBodyLength() >= target*/)
+                                    return true;
+
+                            }
+
+                            if(closedBelowLow && lowIndex < ctx.Lb.Count / 3
+                                && CandleSentiment.Of(lbSingleCandle)  == CandleSentiment.Red)
+                                return true;
+
+                            return false;
                         }
                     }
                 },
@@ -160,35 +213,11 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public static Func<FuncCondition<StrategyContext>> Strategy = contextReadyCondition;
     }
 
-    public class SMAContext : IContext
+    public class SimpleBreakoutEntryContext : EntryContextInfo
     {
-        private List<MovingAverage> smas;
-        public SMAContext(MovingAverage sma50, 
-            MovingAverage sma100,
-            MovingAverage sma250,
-            MovingAverage sma3600)
+        public SimpleBreakoutEntryContext(Candle entryCandle, Candle hCandle, Candle lCandle)
+            : base(entryCandle, hCandle, lCandle)
         {
-            Sma50 = sma50;
-            Sma100 = sma100;
-            Sma250 = sma250;
-            Sma3600 = sma3600;
-
-            smas = new List<MovingAverage> { Sma50, Sma100, Sma250, Sma3600 };
-
         }
-
-        public SMAContext Update(Candle candle)
-        {
-            smas.Foreach(sma => sma.Push(candle.Close));
-            return this;
-        }
-
-        public bool IsReady()
-            => smas.All(sma => sma.Current != double.NaN);
-
-        public MovingAverage Sma50 { get; private set; }
-        public MovingAverage Sma100 { get; private set; }
-        public MovingAverage Sma250 { get; private set; }
-        public MovingAverage Sma3600 { get; private set; }
     }
 }
