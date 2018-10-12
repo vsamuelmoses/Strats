@@ -41,7 +41,7 @@ namespace Carvers.Infra.Tests.Math.Geometry
                 intersectionPoint.Item1.ValueOrDefault().X.Should().Be(2d);
                 intersectionPoint.Item1.ValueOrDefault().Y.Should().Be(2d);
 
-                intersectionPoint.Item2.Should().NeTrue();
+                intersectionPoint.Item2.Should().BeTrue();
             }
 
             [TestMethod]

@@ -122,6 +122,7 @@
             <s:SciStockChart.YAxisStyle>
                 <Style TargetType="s:NumericAxis">
                     <Setter Property="AutoRange" Value="Always"/>
+                    <Setter Property="TextFormatting" Value="0.#######"/>
                 </Style>
             </s:SciStockChart.YAxisStyle>
         </s:SciStockChart>

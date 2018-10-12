@@ -37,7 +37,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             Strategy = new Strategy("Simple Breakout");
-            var context = new SMAContext(Strategy, new MovingAverage(50, 3), new MovingAverage(100, 3), new MovingAverage(250, 3), new MovingAverage(3600, 3));
+            var context = new SMAContext(Strategy, new MovingAverage(50, 3), new MovingAverage(100, 3), new MovingAverage(250, 3), new MovingAverage(3600, 3), new EmptyContext());
 
             var nextCondition = SMAStrategy.Strategy;
 
@@ -95,8 +95,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
     public static class SMAStrategy
     {
-        
-        
+
+
         private static Func<FuncCondition<SMAContext>> contextReadyCondition = () =>
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
@@ -116,7 +116,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             var sma100Line = ctx.Sma100.Averages.GetLine(3);
 
                             return !sma3600Line.HasSameStartPoint(sma100Line)
-                                   && !sma3600Line.HasSameEndPoint(sma100Line) 
+                                   && !sma3600Line.HasSameEndPoint(sma100Line)
                                    && sma3600Line.IntersectionPoint(sma100Line).Item2;
                         }
                     }
@@ -124,10 +124,12 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 onSuccessAction: ctx =>
                 {
                     if (ctx.Sma3600.Averages.Last() < ctx.Sma100.Averages.Last())
-                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy);
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell)
+                            .AddContextInfo(new SmaContextInfo(ctx.Sma3600.Current, ctx.Sma50.Current));
 
                     if (ctx.Sma3600.Averages.Last() > ctx.Sma100.Averages.Last())
-                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell);
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy)
+                            .AddContextInfo(new SmaContextInfo(ctx.Sma3600.Current, ctx.Sma50.Current));
 
                     throw new Exception("Unexpected");
                 });
@@ -139,25 +141,86 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 predicates: new List<Func<SMAContext, bool>>()
                 {
                     {
+                        /* When Moving averages cross */
                         ctx =>
                         {
-                            var sma250Line = ctx.Sma250.Averages.GetLine(3);
-                            var sma50Line = ctx.Sma50.Averages.GetLine(3);
+                            //if (Math.Abs(ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle, 100000)) >= 250)
+                            //    return true;
+
+                            //if (ctx.Strategy.OpenOrder is ShortSellOrder)
+                            //{
+                            //    var entryDiff = ((SmaContextInfo) ctx.ContextInfo).Sma100Current - ((SmaContextInfo) ctx.ContextInfo).Sma3600Current;
+                            //    var currentDiff = ctx.Sma100.Current - ctx.Sma3600.Current;
+
+                            //    if (currentDiff > (2 * entryDiff))
+                            //        return true;
+                            //}
+
+                            //if (ctx.Strategy.OpenOrder is BuyOrder)
+                            //{
+                            //    var entryDiff = ((SmaContextInfo) ctx.ContextInfo).Sma100Current - ((SmaContextInfo) ctx.ContextInfo).Sma3600Current;
+                            //    var currentDiff = ctx.Sma100.Current - ctx.Sma3600.Current;
+
+                            //    if ((-1*currentDiff) > (2 * -1 * entryDiff))
+                            //        return true;
+                            //}
+
+
+                            var movingAvgLine1Pts = ctx.Sma50.Averages;
+                            var movingAvgLine2Pts = ctx.Sma3600.Averages;
+
+                            var movingAvgLine1 = movingAvgLine1Pts.GetLine(3);
+                            var movingAvgLine2 = movingAvgLine2Pts.GetLine(3);
 
                             if (ctx.Strategy.OpenOrder is BuyOrder)
                             {
-                                return sma50Line.IntersectionPoint(sma250Line).Item2
-                                       && ctx.Sma50.Averages.Last() < ctx.Sma250.Averages.Last();
+                                return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
+                                       && movingAvgLine1Pts.Last() > movingAvgLine2Pts.Last();
                             }
 
                             if (ctx.Strategy.OpenOrder is ShortSellOrder)
                             {
-                                return sma50Line.IntersectionPoint(sma250Line).Item2
-                                       && ctx.Sma50.Averages.Last() > ctx.Sma250.Averages.Last();
+                                return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
+                                       && movingAvgLine1Pts.Last() < movingAvgLine2Pts.Last();
                             }
+
+                            
 
                             throw new Exception("Unexpected error");
                         }
+
+
+                        /* Target of Pips */
+                        //ctx =>
+                        //{
+                        //    if (ctx.Strategy.OpenOrder is BuyOrder)
+                        //    {
+                        //        var target = (ctx.LastCandle.Close - ctx.Strategy.OpenOrder.OrderInfo.Price.Value) * 100000;
+                        //        return (target >= 40) || target <= -20;
+                        //    }
+
+                        //    if (ctx.Strategy.OpenOrder is ShortSellOrder)
+                        //    {
+                        //        var target = (ctx.Strategy.OpenOrder.OrderInfo.Price.Value - ctx.LastCandle.Close) * 100000;
+                        //        return (target >= 40) || target <= -20;
+                        //    }
+
+                        //    return false;
+                        //}
+
+
+                        //ctx =>
+                        //{
+                        //    if (ctx.Strategy.OpenOrder is BuyOrder)
+                        //        return (ctx.LastCandle.Close < ctx.Sma3600.Current);
+                                             
+
+                        //    if (ctx.Strategy.OpenOrder is ShortSellOrder)
+                        //        return (ctx.LastCandle.Close > ctx.Sma3600.Current);
+
+                        //    throw new Exception("Unexpected Errr");
+
+                        //}
                     }
                 },
                 onSuccessAction: ctx =>
@@ -187,20 +250,34 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public static Func<FuncCondition<SMAContext>> Strategy = contextReadyCondition;
     }
 
+    internal class SmaContextInfo : IContextInfo
+    {
+        public double Sma3600Current { get; }
+        public double Sma100Current { get; }
+
+        public SmaContextInfo(double sma3600Current, double sma100Current)
+        {
+            Sma3600Current = sma3600Current;
+            Sma100Current = sma100Current;
+        }
+    }
+
     public class SMAContext : IContext
     {
         private readonly List<MovingAverage> smas;
-        public SMAContext(Strategy strategy, 
-            MovingAverage sma50, 
+        public SMAContext(Strategy strategy,
+            MovingAverage sma50,
             MovingAverage sma100,
             MovingAverage sma250,
-            MovingAverage sma3600)
+            MovingAverage sma3600,
+            IContextInfo contextInfo)
         {
             Strategy = strategy;
             Sma50 = sma50;
             Sma100 = sma100;
             Sma250 = sma250;
             Sma3600 = sma3600;
+            ContextInfo = contextInfo;
 
             smas = new List<MovingAverage> { Sma50, Sma100, Sma250, Sma3600 };
         }
@@ -208,10 +285,11 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public IContext Add(Candle candle)
         {
             LastCandle = candle;
-            smas.Foreach(sma => {
+            smas.Foreach(sma =>
+            {
                 sma.Push(candle.Close);
 
-                });
+            });
             return this;
         }
 
@@ -225,6 +303,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public MovingAverage Sma100 { get; private set; }
         public MovingAverage Sma250 { get; private set; }
         public MovingAverage Sma3600 { get; private set; }
+        public IContextInfo ContextInfo { get; }
     }
 
     public static class ContextExtensions
@@ -247,5 +326,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
             throw new Exception("unexpected error");
         }
+
+        public static SMAContext AddContextInfo(this SMAContext context, IContextInfo info)
+            => new SMAContext(context.Strategy, context.Sma50, context.Sma100, context.Sma250, context.Sma3600, info);
     }
 }
