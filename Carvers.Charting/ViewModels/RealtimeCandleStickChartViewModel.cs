@@ -21,6 +21,8 @@ namespace Carvers.Charting.ViewModels
         private readonly MovingAverage _sma50 = new MovingAverage(50);
         private readonly MovingAverage _sma100 = new MovingAverage(100);
         private readonly MovingAverage _sma250 = new MovingAverage(250);
+        private readonly MovingAverage _sma500 = new MovingAverage(500);
+        private readonly MovingAverage _sma1000 = new MovingAverage(1000);
         private readonly MovingAverage _sma3600 = new MovingAverage(3600);
 
         private readonly double _barTimeFrame = TimeSpan.FromMinutes(5).TotalSeconds;
@@ -51,6 +53,12 @@ namespace Carvers.Charting.ViewModels
 
             var ds4 = new XyDataSeries<DateTime, double> { SeriesName = "250-Period SMA" };
             _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds4, StyleKey = "LightYellowLineStyle" });
+
+            var ds5 = new XyDataSeries<DateTime, double> { SeriesName = "500-Period SMA" };
+            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds5, StyleKey = "VioletLineStyle" });
+
+            var ds6 = new XyDataSeries<DateTime, double> { SeriesName = "1000-Period SMA" };
+            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds6, StyleKey = "BlueLineStyle" });
 
 
             //var support = new XyDataSeries<DateTime, double> { SeriesName = "Support", AcceptsUnsortedData = true };
@@ -150,6 +158,8 @@ namespace Carvers.Charting.ViewModels
                 var ds2 = (IXyDataSeries<DateTime, double>)_seriesViewModels[2].DataSeries;
                 var ds3 = (IXyDataSeries<DateTime, double>)_seriesViewModels[3].DataSeries;
                 var ds4 = (IXyDataSeries<DateTime, double>)_seriesViewModels[4].DataSeries;
+                var ds5 = (IXyDataSeries<DateTime, double>)_seriesViewModels[5].DataSeries;
+                var ds6 = (IXyDataSeries<DateTime, double>)_seriesViewModels[6].DataSeries;
                 //var support = (IXyDataSeries<DateTime, double>)_seriesViewModels[2].DataSeries;
                 //var resistance = (IXyDataSeries<DateTime, double>)_seriesViewModels[3].DataSeries;
 
@@ -172,6 +182,8 @@ namespace Carvers.Charting.ViewModels
                     ds2.Update(candle.TimeStamp.DateTime, _sma100.Update(candle.Close).Current);
                     ds3.Update(candle.TimeStamp.DateTime, _sma3600.Update(candle.Close).Current);
                     ds4.Update(candle.TimeStamp.DateTime, _sma250.Update(candle.Close).Current);
+                    ds5.Update(candle.TimeStamp.DateTime, _sma500.Update(candle.Close).Current);
+                    ds6.Update(candle.TimeStamp.DateTime, _sma1000.Update(candle.Close).Current);
                 }
                 else
                 {
@@ -180,6 +192,8 @@ namespace Carvers.Charting.ViewModels
                     ds2.Append(candle.TimeStamp.DateTime, _sma100.Push(candle.Close).Current);
                     ds3.Append(candle.TimeStamp.DateTime, _sma3600.Push(candle.Close).Current);
                     ds4.Append(candle.TimeStamp.DateTime, _sma250.Push(candle.Close).Current);
+                    ds5.Append(candle.TimeStamp.DateTime, _sma500.Push(candle.Close).Current);
+                    ds6.Append(candle.TimeStamp.DateTime, _sma1000.Push(candle.Close).Current);
 
                     // If the latest appending point is inside the viewport (i.e. not off the edge of the screen)
                     // then scroll the viewport 1 bar, to keep the latest bar at the same place

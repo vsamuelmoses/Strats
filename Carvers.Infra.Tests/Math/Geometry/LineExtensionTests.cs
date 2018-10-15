@@ -56,5 +56,37 @@ namespace Carvers.Infra.Tests.Math.Geometry
                 intersectionPoint.Item2.Should().BeFalse();
             }
         }
+
+
+        [TestClass]
+        public class IntersectionAngle
+        {
+            [TestMethod]
+            public void ShouldReturnAnAngleOf90degreesForPerpendicularLines()
+            {
+                var line1 = new Line<double, double>(0,0, 5,0);
+                var line2 = new Line<double, double>(3, 1, 3, 0);
+
+                Assert.AreEqual(90, line1.IntersectionAngleDegrees(line2));
+            }
+
+            [TestMethod]
+            public void ShouldReturnAnAngleOfNegative90degreesForPerpendicularLinesInTheNegativeDirection()
+            {
+                var line1 = new Line<double, double>(0, 0, 5, 0);
+                var line2 = new Line<double, double>(3, -1, 3, 0);
+
+                Assert.AreEqual(-90d, line1.IntersectionAngleDegrees(line2));
+            }
+
+            [TestMethod]
+            public void ShouldReturnAnAngleOf45degreesForTwoLinesAt45Degrees()
+            {
+                var line1 = new Line<double, double>(0, 0, 5, 0);
+                var line2 = new Line<double, double>(3, 3, 0, 0);
+
+                Assert.AreEqual(45, line1.IntersectionAngleDegrees(line2));
+            }
+        }
     }
 }

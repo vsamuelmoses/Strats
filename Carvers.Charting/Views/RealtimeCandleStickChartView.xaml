@@ -84,7 +84,7 @@
                     <Setter Property="StrokeThickness" Value="{Binding ElementName=StrokeThicknesses, Path=SelectedItem}"/>
                 </Style>
                 <Style x:Key="LineStyle" TargetType="s:FastLineRenderableSeries">
-                    <Setter Property="Stroke" Value="#ffffa500"/>
+                    <Setter Property="Stroke" Value="Orange"/>
                     <Setter Property="AntiAliasing" Value="{Binding ElementName=UseAntiAliasing, Path=IsChecked}"/>
                     <Setter Property="StrokeThickness" Value="{Binding ElementName=StrokeThicknesses, Path=SelectedItem}"/>
                 </Style>
@@ -103,6 +103,16 @@
                 <Style x:Key="AquaLineStyle" TargetType="s:FastLineRenderableSeries"
                        BasedOn="{StaticResource LineStyle}">
                     <Setter Property="Stroke" Value="Aqua"/>
+                </Style>
+
+                <Style x:Key="VioletLineStyle" TargetType="s:FastLineRenderableSeries"
+                       BasedOn="{StaticResource LineStyle}">
+                    <Setter Property="Stroke" Value="Violet"/>
+                </Style>
+
+                <Style x:Key="BlueLineStyle" TargetType="s:FastLineRenderableSeries"
+                       BasedOn="{StaticResource LineStyle}">
+                    <Setter Property="Stroke" Value="Blue"/>
                 </Style>
 
             </s:SciStockChart.Resources>

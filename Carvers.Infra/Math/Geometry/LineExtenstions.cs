@@ -122,5 +122,8 @@ namespace Carvers.Infra.Math.Geometry
         public static Point ToPoint(this Point<double, double> dPoint)
             => new Point(dPoint.X, dPoint.Y);
 
+        public static double IntersectionAngleDegrees(this Line<double, double> line1, Line<double, double> line2)
+            => (System.Math.Atan2(line1.Point2.Y - line1.Point1.Y, line1.Point2.X - line1.Point1.X) - System.Math.Atan2(line2.Point2.Y - line2.Point1.Y, line2.Point2.X - line2.Point1.X)) * (180d/System.Math.PI);
+
     }
 }

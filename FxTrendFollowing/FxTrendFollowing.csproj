@@ -85,8 +85,13 @@
     </ApplicationDefinition>
     <Compile Include="Breakout\ViewModels\BrekaoutViewModel.cs" />
     <Compile Include="Breakout\ViewModels\CandleSentimentEvaluator.cs" />
+    <Compile Include="Breakout\ViewModels\ContextExtensions.cs" />
+    <Compile Include="Breakout\ViewModels\MultipleSmaPatternsStrategy.cs" />
     <Compile Include="Breakout\ViewModels\SimpleBreakout.cs" />
-    <Compile Include="Breakout\ViewModels\SMAStrategy.cs" />
+    <Compile Include="Breakout\ViewModels\SMAContext.cs" />
+    <Compile Include="Breakout\ViewModels\SmaContextInfo.cs" />
+    <Compile Include="Breakout\ViewModels\SMACrossOverStrategy.cs" />
+    <Compile Include="Breakout\ViewModels\SMAStrategyViewModel.cs" />
     <Compile Include="Breakout\Views\BreakoutView.xaml.cs">
       <DependentUpon>BreakoutView.xaml</DependentUpon>
     </Compile>
