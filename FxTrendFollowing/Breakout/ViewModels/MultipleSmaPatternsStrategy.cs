@@ -14,7 +14,26 @@ namespace FxTrendFollowing.Breakout.ViewModels
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
                 onFailure: contextReadyCondition,
-                predicate: context => context.IsReady());
+                predicates: new List<Func<SMAContext, bool>>()
+                {
+                    context => context.IsReady(),
+//                    ctx =>
+//                    {
+//                        var allSmas = new double[]
+//                        {
+
+//                            ctx.Sma50.Current,
+//                            ctx.Sma100.Current,
+//                            ctx.Sma250.Current,
+//                            ctx.Sma500.Current,
+//                            ctx.Sma1000.Current,
+////                            ctx.Sma3600.Current,
+//                        };
+
+//                        return allSmas.Max() == ctx.Sma1000.Current;
+//                        //return allSmas.Max() == ctx.Sma3600.Current;
+//                    }
+                });
 
         private static Func<FuncCondition<SMAContext>> entryCondition = () =>
             new FuncCondition<SMAContext>(
@@ -25,21 +44,31 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     {
                         ctx =>
                         {
-                            var smas = new double[]
+                            var allSmas = new double[]
+                            {
+                                
+                                ctx.Sma250.Current,
+                                ctx.Sma500.Current,
+                                ctx.Sma100.Current,
+                                ctx.Sma50.Current,
+                                ctx.Sma1000.Current,
+                                //ctx.Sma3600.Current,
+                            };
+
+                            var interestedSmas = new double[]
                             {
 
                                 ctx.Sma50.Current,
                                 ctx.Sma100.Current,
-                                ctx.Sma250.Current,
-                                ctx.Sma500.Current,
-                                ctx.Sma1000.Current,
-                                ctx.Sma3600.Current,
+                                ctx.Sma250.Current
+
                             };
 
 
-                            return smas.Min() == ctx.Sma3600.Current;
-                            //return smas.SequenceEqual(smas.OrderByDescending(s => s));
-                                   
+                            return allSmas.Min() == ctx.Sma1000.Current
+                                   && ctx.LastCandle.Close > ctx.Sma1000.Current
+                                   && allSmas.SequenceEqual(allSmas.OrderByDescending(s => s));
+
                         }
                     }
                 },
@@ -58,7 +87,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
         private static Func<FuncCondition<SMAContext>> exitCondition = () =>
             new FuncCondition<SMAContext>(
-                onSuccess: entryCondition,
+                onSuccess: contextReadyCondition,
                 onFailure: exitCondition,
                 predicates: new List<Func<SMAContext, bool>>()
                 {
@@ -66,7 +95,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                         /* When Moving averages cross */
                         ctx =>
                         {
-
+                           
                             var smas = new double[]
                             {
 
@@ -75,10 +104,13 @@ namespace FxTrendFollowing.Breakout.ViewModels
                                 ctx.Sma250.Current,
                                 ctx.Sma500.Current,
                                 ctx.Sma1000.Current,
-                                ctx.Sma3600.Current,
+                                //ctx.Sma3600.Current,
                             };
 
-                            return smas.Max() == ctx.Sma3600.Current;
+                            //return (smas.Max() == ctx.Sma1000.Current) ||
+                            //       ctx.LastCandle.Close < ctx.Sma1000.Current;
+
+                            return Enumerable.SequenceEqual(smas, smas.OrderBy(s => s));
 
                             //var movingAvgLine1Pts = ctx.Sma50.Averages;
                             //var movingAvgLine2Pts = ctx.Sma250.Averages;

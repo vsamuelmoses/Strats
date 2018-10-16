@@ -16,6 +16,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             MovingAverage sma500,
             MovingAverage sma1000,
             MovingAverage sma3600,
+            ExponentialMovingAverage exma3600,
             IContextInfo contextInfo)
         {
             Strategy = strategy;
@@ -25,6 +26,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             Sma500 = sma500;
             Sma1000 = sma1000;
             Sma3600 = sma3600;
+            ExMa3600 = exma3600;
             ContextInfo = contextInfo;
 
             smas = new List<MovingAverage> { Sma50, Sma100, Sma250, Sma500, Sma1000, Sma3600 };
@@ -38,6 +40,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 sma.Push(candle.Close);
 
             });
+
+            ExMa3600.Push(candle.Close);
             return this;
         }
 
@@ -53,6 +57,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public MovingAverage Sma500 { get; }
         public MovingAverage Sma1000 { get; }
         public MovingAverage Sma3600 { get; private set; }
+        public ExponentialMovingAverage ExMa3600 { get; private set; }
         public IContextInfo ContextInfo { get; }
     }
 }

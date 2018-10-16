@@ -109,4 +109,44 @@ namespace Carvers.Models.Indicators
             }
         }
     }
+
+    public sealed class ExponentialMovingAverage
+    {
+        private readonly int _cacheSize;
+        private readonly double _alpha;
+        private double _current = double.NaN;
+
+        public ExponentialMovingAverage(int lookBack, int cacheSize = 1)
+        {
+            _cacheSize = cacheSize;
+            _alpha = 2f / (lookBack + 1);
+            Averages = new ConcurrentQueue<double>();
+        }
+
+        public double Push(double value) => 
+            Current = double.IsNaN(Current) 
+                ? value
+                : (value - Current) * _alpha + Current;
+
+        public ConcurrentQueue<double> Averages { get; private set; }
+
+        public double Current
+        {
+            get { return _current; }
+            private set
+            {
+                _current = value;
+
+                if (Averages.Count == _cacheSize)
+                {
+                    double av;
+                    Averages.TryDequeue(out av);
+                }
+
+                Averages.Enqueue(_current);
+            }
+        }
+    }
+
+    
 }

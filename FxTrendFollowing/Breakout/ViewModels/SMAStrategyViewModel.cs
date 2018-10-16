@@ -28,7 +28,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
-            var interestedPairs = new[] { CurrencyPair.GBPUSD };
+            var interestedPairs = new[] { CurrencyPair.AUDUSD };
 
             Strategy = new Strategy("Simple Breakout");
             var context = new SMAContext(Strategy, 
@@ -37,9 +37,11 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 new MovingAverage(250, 3), 
                 new MovingAverage(500, 3), 
                 new MovingAverage(1000, 3), 
-                new MovingAverage(3600, 3), new EmptyContext());
+                new MovingAverage(3600, 3), 
+                new ExponentialMovingAverage(3600, 3), 
+                new EmptyContext());
 
-            var nextCondition = MultipleSmaPatternsStrategy.Strategy;
+            var nextCondition = SMACrossOverStrategy.Strategy;
 
             var candleStream = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
 

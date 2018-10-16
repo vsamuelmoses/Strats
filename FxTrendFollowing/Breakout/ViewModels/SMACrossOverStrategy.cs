@@ -30,22 +30,22 @@ namespace FxTrendFollowing.Breakout.ViewModels
                         ctx =>
                         {
                             var sma3600Line = ctx.Sma3600.Averages.GetLine(3);
-                            var sma100Line = ctx.Sma100.Averages.GetLine(3);
+                            var exMa3600Line = ctx.ExMa3600.Averages.GetLine(3);
 
-                            return !sma3600Line.HasSameStartPoint(sma100Line)
-                                   && !sma3600Line.HasSameEndPoint(sma100Line)
-                                   && sma3600Line.IntersectionPoint(sma100Line).Item2;
+                            return !sma3600Line.HasSameStartPoint(exMa3600Line)
+                                   && !sma3600Line.HasSameEndPoint(exMa3600Line)
+                                   && sma3600Line.IntersectionPoint(exMa3600Line).Item2;
                         }
                     }
                 },
                 onSuccessAction: ctx =>
                 {
-                    if (ctx.Sma3600.Averages.Last() < ctx.Sma100.Averages.Last())
-                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell)
+                    if (ctx.Sma3600.Averages.Last() < ctx.ExMa3600.Averages.Last())
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy)
                             .AddContextInfo(new SmaContextInfo(ctx.Sma3600.Current, ctx.Sma50.Current));
 
-                    if (ctx.Sma3600.Averages.Last() > ctx.Sma100.Averages.Last())
-                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy)
+                    if (ctx.Sma3600.Averages.Last() > ctx.ExMa3600.Averages.Last())
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell)
                             .AddContextInfo(new SmaContextInfo(ctx.Sma3600.Current, ctx.Sma50.Current));
 
                     throw new Exception("Unexpected");
@@ -84,7 +84,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
 
                             var movingAvgLine1Pts = ctx.Sma50.Averages;
-                            var movingAvgLine2Pts = ctx.Sma3600.Averages;
+                            var movingAvgLine2Pts = ctx.Sma500.Averages;
 
                             var movingAvgLine1 = movingAvgLine1Pts.GetLine(3);
                             var movingAvgLine2 = movingAvgLine2Pts.GetLine(3);
@@ -92,13 +92,13 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             if (ctx.Strategy.OpenOrder is BuyOrder)
                             {
                                 return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
-                                       && movingAvgLine1Pts.Last() > movingAvgLine2Pts.Last();
+                                       && movingAvgLine1Pts.Last() < movingAvgLine2Pts.Last();
                             }
 
                             if (ctx.Strategy.OpenOrder is ShortSellOrder)
                             {
                                 return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
-                                       && movingAvgLine1Pts.Last() < movingAvgLine2Pts.Last();
+                                       && movingAvgLine1Pts.Last() > movingAvgLine2Pts.Last();
                             }
 
                             

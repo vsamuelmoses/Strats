@@ -24,6 +24,8 @@ namespace Carvers.Charting.ViewModels
         private readonly MovingAverage _sma500 = new MovingAverage(500);
         private readonly MovingAverage _sma1000 = new MovingAverage(1000);
         private readonly MovingAverage _sma3600 = new MovingAverage(3600);
+        private readonly ExponentialMovingAverage _ex3600 = new ExponentialMovingAverage(3600);
+
 
         private readonly double _barTimeFrame = TimeSpan.FromMinutes(5).TotalSeconds;
         private Candle _lastCandle;
@@ -183,7 +185,9 @@ namespace Carvers.Charting.ViewModels
                     ds3.Update(candle.TimeStamp.DateTime, _sma3600.Update(candle.Close).Current);
                     ds4.Update(candle.TimeStamp.DateTime, _sma250.Update(candle.Close).Current);
                     ds5.Update(candle.TimeStamp.DateTime, _sma500.Update(candle.Close).Current);
-                    ds6.Update(candle.TimeStamp.DateTime, _sma1000.Update(candle.Close).Current);
+                    //ds6.Update(candle.TimeStamp.DateTime, _sma1000.Update(candle.Close).Current);
+                    ds6.Update(candle.TimeStamp.DateTime, _ex3600.Push(candle.Close));
+
                 }
                 else
                 {
@@ -193,7 +197,8 @@ namespace Carvers.Charting.ViewModels
                     ds3.Append(candle.TimeStamp.DateTime, _sma3600.Push(candle.Close).Current);
                     ds4.Append(candle.TimeStamp.DateTime, _sma250.Push(candle.Close).Current);
                     ds5.Append(candle.TimeStamp.DateTime, _sma500.Push(candle.Close).Current);
-                    ds6.Append(candle.TimeStamp.DateTime, _sma1000.Push(candle.Close).Current);
+                    //ds6.Append(candle.TimeStamp.DateTime, _sma1000.Push(candle.Close).Current);
+                    ds6.Append(candle.TimeStamp.DateTime, _ex3600.Push(candle.Close));
 
                     // If the latest appending point is inside the viewport (i.e. not off the edge of the screen)
                     // then scroll the viewport 1 bar, to keep the latest bar at the same place
