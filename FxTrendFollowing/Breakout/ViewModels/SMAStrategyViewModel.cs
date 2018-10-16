@@ -23,8 +23,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
         {
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 08, 31, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
+                //new DateTimeOffset(2017, 08, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 

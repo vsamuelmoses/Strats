@@ -27,17 +27,19 @@ namespace FxTrendFollowing.Breakout.ViewModels
                         {
                             var smas = new double[]
                             {
-                                
+
+                                ctx.Sma50.Current,
                                 ctx.Sma100.Current,
                                 ctx.Sma250.Current,
-                                ctx.Sma50.Current,
                                 ctx.Sma500.Current,
                                 ctx.Sma1000.Current,
-                                ctx.Sma3600.Current
+                                ctx.Sma3600.Current,
                             };
 
-                            return smas.SequenceEqual(smas.OrderByDescending(s => s))
-                                   && ctx.Sma3600.Current < ctx.LastCandle.Close;
+
+                            return smas.Min() == ctx.Sma3600.Current;
+                            //return smas.SequenceEqual(smas.OrderByDescending(s => s));
+                                   
                         }
                     }
                 },
@@ -64,28 +66,29 @@ namespace FxTrendFollowing.Breakout.ViewModels
                         /* When Moving averages cross */
                         ctx =>
                         {
-                            if (ctx.Sma50.Current < ctx.Sma500.Current)
-                                return true;
-
 
                             var smas = new double[]
                             {
+
                                 ctx.Sma50.Current,
                                 ctx.Sma100.Current,
                                 ctx.Sma250.Current,
                                 ctx.Sma500.Current,
-                                ctx.Sma1000.Current
+                                ctx.Sma1000.Current,
+                                ctx.Sma3600.Current,
                             };
 
-                            var movingAvgLine1Pts = ctx.Sma50.Averages;
-                            var movingAvgLine2Pts = ctx.Sma250.Averages;
+                            return smas.Max() == ctx.Sma3600.Current;
 
-                            var movingAvgLine1 = movingAvgLine1Pts.GetLine(3);
-                            var movingAvgLine2 = movingAvgLine2Pts.GetLine(3);
+                            //var movingAvgLine1Pts = ctx.Sma50.Averages;
+                            //var movingAvgLine2Pts = ctx.Sma250.Averages;
+
+                            //var movingAvgLine1 = movingAvgLine1Pts.GetLine(3);
+                            //var movingAvgLine2 = movingAvgLine2Pts.GetLine(3);
 
 
-                            return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
-                                   && movingAvgLine1Pts.Last() < movingAvgLine2Pts.Last();
+                            //return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
+                            //       && movingAvgLine1Pts.Last() < movingAvgLine2Pts.Last();
 
                             //return smas.Max() == ctx.Sma50.Current;
 
