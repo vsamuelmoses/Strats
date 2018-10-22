@@ -107,7 +107,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
             ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
-
+                summaryReport.ProfitLossStream,
                 Strategy
                     .CloseddOrders
                     .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));

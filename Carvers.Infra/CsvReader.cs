@@ -107,6 +107,8 @@ namespace Carvers.Infra
             peekedLine = Tuple.Create(true, ReadNextLine());
             return peekedLine.Item2;
         }
+
+        public bool EndOfFeed => fileReader.EndOfStream;
     }
 
     public class FileFeedService<T>
@@ -146,10 +148,10 @@ namespace Carvers.Infra
                 {
                     
 
-                    while (true)
+                    while (!feed.EndOfFeed)
                     {
                         stream.OnNext(feed.ReadNextLine());
-
+                        
 
                     //var toSend = fileFeeds
                     //.Select(feed => Tuple.Create(feed, feed.PeekLine()))

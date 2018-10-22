@@ -2,22 +2,27 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using Carvers.Models;
+using Carvers.Models.Events;
 
 namespace Carvers.Infra.ViewModels
 {
 
     public class StrategySummaryReport : ViewModel
     {
+        private readonly Subject<DateTimeEvent<Price>> _profitLossStream;
+
         public StrategySummaryReport(IEnumerable<IStrategy> strategies)
         {
+            _profitLossStream = new Subject<DateTimeEvent<Price>>();
             var closedOrders = strategies
                 .Select(strat => strat.CloseddOrders)
                 .Merge()
-                .Subscribe(info => Report(strategies));
+                .Subscribe(recentClosedOrder => Report(recentClosedOrder, strategies));
         }
 
-        private void Report(IEnumerable<IStrategy> stockData)
+        private void Report(IOrder recentClosedOrder, IEnumerable<IStrategy> stockData)
         {
             var orders = stockData.SelectMany(stock => stock.ClosedOrders).ToList();
             TotalTrades = orders.Count();
@@ -29,6 +34,8 @@ namespace Carvers.Infra.ViewModels
 
             ProfitLoss = orders.ProfitLoss();
             SharpeRatio = SharpeRatioCalculator.Calculate(orders);
+
+            _profitLossStream.OnNext(new DateTimeEvent<Price>(recentClosedOrder.OrderInfo.TimeStamp, ProfitLoss));
         }
 
         private int totalTrades;
@@ -67,7 +74,12 @@ namespace Carvers.Infra.ViewModels
         public Price ProfitLoss
         {
             get { return profitLoss; }
-            set { profitLoss = value; OnPropertyChanged(); }
+            set
+            {
+                profitLoss = value;
+                OnPropertyChanged();
+                
+            }
         }
 
 
@@ -79,7 +91,7 @@ namespace Carvers.Infra.ViewModels
             set { sharpeRatio = value; OnPropertyChanged(); }
         }
 
-
+        public IObservable<DateTimeEvent<Price>> ProfitLossStream => _profitLossStream;
 
     }
 }

@@ -12,7 +12,7 @@
                 <charting:SciChartCandleStickExample/>
             </TabItem>-->
             <TabItem Header="Realtime Candle stick">
-                <views:RealtimeCandleStickChartView
+                <views:TraderView
                     DataContext="{Binding RealtimeCandleStickViewModel}"/>
             </TabItem>
         </TabControl>

@@ -9,14 +9,14 @@ using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Models.Events;
 using Carvers.Models.Indicators;
-using SciChart.Charting.Model.ChartSeries;
 using SciChart.Charting.Model.DataSeries;
 using SciChart.Charting.Visuals.Annotations;
+using SciChart.Charting.Visuals.RenderableSeries;
 using SciChart.Data.Model;
 
 namespace Carvers.Charting.ViewModels
 {
-    public class RealtimeCandleStickChartViewModel : ViewModel
+    public class TraderViewModel : ViewModel
     {
         private readonly MovingAverage _sma50 = new MovingAverage(50);
         private readonly MovingAverage _sma100 = new MovingAverage(100);
@@ -27,13 +27,16 @@ namespace Carvers.Charting.ViewModels
         private readonly ExponentialMovingAverage _ex3600 = new ExponentialMovingAverage(3600);
 
 
-        private readonly double _barTimeFrame = TimeSpan.FromMinutes(5).TotalSeconds;
+        private readonly double _barTimeFrame = TimeSpan.FromMinutes(1).TotalSeconds;
         private Candle _lastCandle;
         private IndexRange _xVisibleRange;
         private string _selectedSeriesStyle;
-        private ObservableCollection<IRenderableSeriesViewModel> _seriesViewModels;
+        private ObservableCollection<IRenderableSeries> _seriesViewModels;
         private Lookback lb;
-        public RealtimeCandleStickChartViewModel(IObservable<Candle> candleFeed,
+        private XyDataSeries<DateTime, double> plSeries;
+        private DateTime lastPlTimeStamp;
+
+        public TraderViewModel(IObservable<Candle> candleFeed,
             IObservable<DateTimeEvent<Price>> profitLossFeed = null,
             IObservable<IEvent> eventsFeed = null)
         {
@@ -41,27 +44,65 @@ namespace Carvers.Charting.ViewModels
 
             AnnotationCollection = new AnnotationCollection();
 
-            _seriesViewModels = new ObservableCollection<IRenderableSeriesViewModel>();
+            _seriesViewModels = new ObservableCollection<IRenderableSeries>();
             var ds0 = new OhlcDataSeries<DateTime, double> { SeriesName = "Price Series" };
-            _seriesViewModels.Add(new OhlcRenderableSeriesViewModel { DataSeries = ds0, StyleKey = "BaseRenderableSeriesStyle" });
+            _seriesViewModels.Add(new FastOhlcRenderableSeries
+            {
+                DataSeries = ds0,
+            });
 
             var ds1 = new XyDataSeries<DateTime, double> { SeriesName = "50-Period SMA" };
-            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds1, StyleKey = "LineStyle" });
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+                DataSeries = ds1,
+                Stroke = Colors.Orange
+            });
 
             var ds2 = new XyDataSeries<DateTime, double> { SeriesName = "100-Period SMA" };
-            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds2, StyleKey = "WhiteLineStyle" });
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+                DataSeries = ds2,
+                Stroke = Colors.Violet
+
+            });
 
             var ds3 = new XyDataSeries<DateTime, double> { SeriesName = "3600-Period SMA" };
-            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds3, StyleKey = "AquaLineStyle" });
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+                DataSeries = ds3,
+                Stroke = Colors.Blue
+            });
 
             var ds4 = new XyDataSeries<DateTime, double> { SeriesName = "250-Period SMA" };
-            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds4, StyleKey = "LightYellowLineStyle" });
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+                DataSeries = ds4 ,
+                Stroke = Colors.Green
+            });
 
             var ds5 = new XyDataSeries<DateTime, double> { SeriesName = "500-Period SMA" };
-            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds5, StyleKey = "VioletLineStyle" });
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+                DataSeries = ds5,
+                Stroke = Colors.Yellow
+            });
 
             var ds6 = new XyDataSeries<DateTime, double> { SeriesName = "1000-Period SMA" };
-            _seriesViewModels.Add(new LineRenderableSeriesViewModel { DataSeries = ds6, StyleKey = "BlueLineStyle" });
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+
+                DataSeries = ds6,
+                Stroke = Colors.Aqua
+            });
+
+            plSeries = new XyDataSeries<DateTime, double> { SeriesName = "ProfitLoss" };
+            _seriesViewModels.Add(new FastLineRenderableSeries
+            {
+                DataSeries = plSeries,
+                Stroke = Colors.GreenYellow,
+                DrawNaNAs = LineDrawMode.ClosedLines,
+                YAxisId = "PnL",
+            });
 
 
             //var support = new XyDataSeries<DateTime, double> { SeriesName = "Support", AcceptsUnsortedData = true };
@@ -74,13 +115,12 @@ namespace Carvers.Charting.ViewModels
                 .ObserveOnDispatcher()
                 .Subscribe(OnNewPrice);
 
+            profitLossFeed
+                .ObserveOnDispatcher()
+                .Subscribe(pl => OnPLChanged(pl));
+
             if (eventsFeed != null)
             {
-                eventsFeed
-                    .ObserveOnDispatcher()
-                    .Subscribe(e => Console.WriteLine($"{e.ToString()}"));
-
-
                 eventsFeed
                     .ObserveOnDispatcher()
                     .OfType<DateTimeEvent<IOrder>>()
@@ -89,7 +129,9 @@ namespace Carvers.Charting.ViewModels
                         new BuyArrowAnnotation
                         {
                             X1 = e.DateTimeOffset.DateTime,
-                            Y1 = e.Event.OrderInfo.Price.Value
+                            Y1 = e.Event.OrderInfo.Price.Value,
+
+
                         }
                     ));
 
@@ -102,7 +144,9 @@ namespace Carvers.Charting.ViewModels
                         {
                             X1 = e.DateTimeOffset.DateTime,
                             Y1 = e.Event.OrderInfo.Price.Value,
-                            FillBrush = new SolidColorBrush(Colors.DarkOrange)
+                            FillBrush = new SolidColorBrush(Colors.DarkOrange),
+
+
                         }
                     ));
 
@@ -115,7 +159,9 @@ namespace Carvers.Charting.ViewModels
                         new SellArrowAnnotation
                         {
                             X1 = e.DateTimeOffset.DateTime,
-                            Y1 = e.Event.OrderInfo.Price.Value
+                            Y1 = e.Event.OrderInfo.Price.Value,
+
+
                         }));
 
                 eventsFeed
@@ -127,33 +173,38 @@ namespace Carvers.Charting.ViewModels
                         {
                             X1 = e.DateTimeOffset.DateTime,
                             Y1 = e.Event.OrderInfo.Price.Value,
-                            FillBrush = new SolidColorBrush(Colors.DarkOrange)
+                            FillBrush = new SolidColorBrush(Colors.DarkOrange),
                         }
                     ));
-
-
-                //eventsFeed
-                //    .ObserveOnDispatcher()
-                //    .OfType<MarketOpeningIndicator>()
-                //    .Subscribe(e => AnnotationCollection.Add(
-                //        new LineAnnotation()
-                //        {
-                //            X1 = e.DateTimeOffset.DateTime,
-                //            Y1 = e.Event.High + 1d,
-
-                //            X2 = e.DateTimeOffset.DateTime,
-                //            Y2 = e.Event.Low - 1d,
-
-                //            Background = Brushes.Pink
-                //        }));
             }
-
-            SelectedSeriesStyle = "Ohlc";
         }
+
+        private double recentPl = 0d;
+        private void OnPLChanged(DateTimeEvent<Price> pl)
+        {
+            var plS = (IXyDataSeries<DateTime, double>)_seriesViewModels[7].DataSeries;
+
+
+            lastPlTimeStamp = pl.DateTimeOffset.DateTime;
+            if (_lastCandle.TimeStamp.DateTime == lastPlTimeStamp)
+                plS.Update(pl.DateTimeOffset.DateTime, pl.Event.Value);
+            else
+                plS.Append(pl.DateTimeOffset.DateTime, pl.Event.Value);
+
+            recentPl = pl.Event.Value;
+
+            if (XVisibleRange != null && XVisibleRange.Max > plS.Count)
+            {
+                var existingRange = _xVisibleRange;
+                var newRange = new IndexRange(existingRange.Min + 1, existingRange.Max + 1);
+                XVisibleRange = newRange;
+            }
+        }
+
         private void OnNewPrice(Candle candle)
         {
             // Ensure only one update processed at a time from multi-threaded timer
-            lock (this)
+            //lock (this)
             {
                 // Update the last price, or append? 
                 var ds0 = (IOhlcDataSeries<DateTime, double>)_seriesViewModels[0].DataSeries;
@@ -163,20 +214,11 @@ namespace Carvers.Charting.ViewModels
                 var ds4 = (IXyDataSeries<DateTime, double>)_seriesViewModels[4].DataSeries;
                 var ds5 = (IXyDataSeries<DateTime, double>)_seriesViewModels[5].DataSeries;
                 var ds6 = (IXyDataSeries<DateTime, double>)_seriesViewModels[6].DataSeries;
-                //var support = (IXyDataSeries<DateTime, double>)_seriesViewModels[2].DataSeries;
-                //var resistance = (IXyDataSeries<DateTime, double>)_seriesViewModels[3].DataSeries;
+                var pl = (IXyDataSeries<DateTime, double>)_seriesViewModels[7].DataSeries;
 
-                //lb = lb.Add(candle);
-                //if (lb.IsComplete())
-                //{
-                //    var sr = SupportResistance.Calculate(lb);
 
-                //    support.Append(sr.Support.Point1.X.DateTime, sr.Support.Point1.Y);
-                //    support.Append(sr.Support.Point2.X.DateTime, sr.Support.Point2.Y);
-
-                //    resistance.Append(sr.Resistance.Point1.X.DateTime, sr.Resistance.Point1.Y);
-                //    resistance.Append(sr.Resistance.Point2.X.DateTime, sr.Resistance.Point2.Y);
-                //}
+                if (lastPlTimeStamp != candle.TimeStamp.DateTime)
+                    pl.Append(candle.TimeStamp.DateTime, recentPl);
 
                 if (_lastCandle != null && _lastCandle.TimeStamp.DateTime == candle.TimeStamp)
                 {
@@ -201,14 +243,14 @@ namespace Carvers.Charting.ViewModels
                     //ds6.Append(candle.TimeStamp.DateTime, _sma1000.Push(candle.Close).Current);
                     ds6.Append(candle.TimeStamp.DateTime, _ex3600.Push(candle.Close));
 
-                    // If the latest appending point is inside the viewport (i.e. not off the edge of the screen)
-                    // then scroll the viewport 1 bar, to keep the latest bar at the same place
-                    if (XVisibleRange != null && XVisibleRange.Max > ds0.Count)
-                    {
-                        var existingRange = _xVisibleRange;
-                        var newRange = new IndexRange(existingRange.Min + 1, existingRange.Max + 1);
-                        XVisibleRange = newRange;
-                    }
+                    //// If the latest appending point is inside the viewport (i.e. not off the edge of the screen)
+                    //// then scroll the viewport 1 bar, to keep the latest bar at the same place
+                    //if (XVisibleRange != null && XVisibleRange.Max > ds0.Count)
+                    //{
+                    //    var existingRange = _xVisibleRange;
+                    //    var newRange = new IndexRange(existingRange.Min + 1, existingRange.Max + 1);
+                    //    XVisibleRange = newRange;
+                    //}
                 }
 
                 _lastCandle = candle;
@@ -216,7 +258,7 @@ namespace Carvers.Charting.ViewModels
         }
 
 
-        public ObservableCollection<IRenderableSeriesViewModel> SeriesViewModels
+        public ObservableCollection<IRenderableSeries> SeriesViewModels
         {
             get { return _seriesViewModels; }
             set
@@ -232,49 +274,6 @@ namespace Carvers.Charting.ViewModels
 
         public IEnumerable<int> StrokeThicknesses { get { return new[] { 1, 2, 3, 4, 5 }; } }
 
-        public string SelectedSeriesStyle
-        {
-            get { return _selectedSeriesStyle; }
-            set
-            {
-                _selectedSeriesStyle = value;
-                OnPropertyChanged("SelectedSeriesStyle");
-
-                if (_selectedSeriesStyle == "OHLC")
-                {
-                    SeriesViewModels[0] = new OhlcRenderableSeriesViewModel
-                    {
-                        DataSeries = SeriesViewModels[0].DataSeries,
-                        StyleKey = "BaseRenderableSeriesStyle"
-                    };
-                }
-                else if (_selectedSeriesStyle == "Candle")
-                {
-                    SeriesViewModels[0] = new CandlestickRenderableSeriesViewModel
-                    {
-                        DataSeries = SeriesViewModels[0].DataSeries,
-                        StyleKey = "BaseRenderableSeriesStyle"
-                    };
-                }
-                else if (_selectedSeriesStyle == "Line")
-                {
-                    SeriesViewModels[0] = new LineRenderableSeriesViewModel
-                    {
-                        DataSeries = SeriesViewModels[0].DataSeries,
-                        StyleKey = "BaseRenderableSeriesStyle"
-                    };
-                }
-                else if (_selectedSeriesStyle == "Mountain")
-                {
-                    SeriesViewModels[0] = new MountainRenderableSeriesViewModel
-                    {
-                        DataSeries = SeriesViewModels[0].DataSeries,
-                        StyleKey = "BaseRenderableSeriesStyle"
-                    };
-                }
-            }
-        }
-
         public IndexRange XVisibleRange
         {
             get { return _xVisibleRange; }
@@ -287,7 +286,7 @@ namespace Carvers.Charting.ViewModels
             }
         }
 
-        
+
         public AnnotationCollection AnnotationCollection { get; }
     }
 }

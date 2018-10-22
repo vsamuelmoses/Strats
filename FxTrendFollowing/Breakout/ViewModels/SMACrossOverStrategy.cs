@@ -32,9 +32,36 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             var sma3600Line = ctx.Sma3600.Averages.GetLine(3);
                             var exMa3600Line = ctx.ExMa3600.Averages.GetLine(3);
 
-                            return !sma3600Line.HasSameStartPoint(exMa3600Line)
+                            var isCrossed =  !sma3600Line.HasSameStartPoint(exMa3600Line)
                                    && !sma3600Line.HasSameEndPoint(exMa3600Line)
                                    && sma3600Line.IntersectionPoint(exMa3600Line).Item2;
+
+                            if (!isCrossed)
+                                return false;
+
+                            var smas = new double[]
+                            {
+
+                                ctx.Sma50.Current,
+                                ctx.Sma100.Current,
+                                ctx.Sma250.Current,
+                                ctx.Sma500.Current,
+                                ctx.Sma1000.Current,
+                                ctx.Sma3600.Current,
+                            };
+
+                            if (isCrossed 
+                               && (ctx.Sma3600.Averages.Last() < ctx.ExMa3600.Averages.Last())
+                               && ctx.Sma100.Current > ctx.Sma3600.Current)
+                                return true;
+
+                            if (isCrossed
+                                && (ctx.Sma3600.Averages.Last() > ctx.ExMa3600.Averages.Last())
+                                && ctx.Sma100.Current < ctx.Sma3600.Current)
+                                return true;
+
+                            return false;
+
                         }
                     }
                 },
@@ -83,8 +110,11 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             //}
 
 
-                            var movingAvgLine1Pts = ctx.Sma50.Averages;
-                            var movingAvgLine2Pts = ctx.Sma500.Averages;
+                            //var movingAvgLine1Pts = ctx.Sma50.Averages;
+                            //var movingAvgLine2Pts = ctx.Sma250.Averages;
+                            //
+                            var movingAvgLine1Pts = ctx.ExMa3600.Averages;
+                            var movingAvgLine2Pts = ctx.Sma3600.Averages;
 
                             var movingAvgLine1 = movingAvgLine1Pts.GetLine(3);
                             var movingAvgLine2 = movingAvgLine2Pts.GetLine(3);

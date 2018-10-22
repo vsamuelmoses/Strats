@@ -23,12 +23,12 @@ namespace FxTrendFollowing.Breakout.ViewModels
         {
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
-                //new DateTimeOffset(2017, 08, 31, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
-            var interestedPairs = new[] { CurrencyPair.AUDUSD };
+            var interestedPairs = new[] { CurrencyPair.EURUSD };
 
             Strategy = new Strategy("Simple Breakout");
             var context = new SMAContext(Strategy, 
@@ -68,7 +68,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
-            ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
+            ChartVm = new TraderViewModel(candleStream,
+                summaryReport.ProfitLossStream,
                 Strategy.OpenOrders
                     .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
                     .Merge(Strategy.CloseddOrders
@@ -92,6 +93,6 @@ namespace FxTrendFollowing.Breakout.ViewModels
         }
 
         public Carvers.Infra.ViewModels.Reporters Reporters { get; }
-        public RealtimeCandleStickChartViewModel ChartVm { get; }
+        public TraderViewModel ChartVm { get; }
     }
 }

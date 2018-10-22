@@ -140,8 +140,12 @@
     </Compile>
     <Compile Include="ViewModels\BuySellAnnotationViewModel.cs" />
     <Compile Include="ViewModels\RealtimeCandleStickChartViewModel.cs" />
+    <Compile Include="ViewModels\TraderViewModel.cs" />
     <Compile Include="Views\RealtimeCandleStickChartView.xaml.cs">
       <DependentUpon>RealtimeCandleStickChartView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\TraderView.xaml.cs">
+      <DependentUpon>TraderView.xaml</DependentUpon>
     </Compile>
     <Page Include="Annotations\DownArrowAnnotation.xaml">
       <SubType>Designer</SubType>
@@ -160,6 +164,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Views\RealtimeCandleStickChartView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\TraderView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

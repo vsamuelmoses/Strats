@@ -24,8 +24,8 @@ namespace Carvers.Charting.App
 
             var agg = new AggreagateCandleFeed(feed.Stream, TimeSpan.FromHours(1));
 
-            RealtimeCandleStickViewModel = new RealtimeCandleStickChartViewModel(agg.Stream, 
-                agg
+            RealtimeCandleStickViewModel = new TraderViewModel(agg.Stream, 
+                eventsFeed:agg
                     .Stream
                     .Where(c => c.TimeStamp.Hour == 9)
                     .Select(c => new MarketOpeningIndicator(c.TimeStamp, c)));
@@ -33,6 +33,6 @@ namespace Carvers.Charting.App
             DataContext = this;
         }
 
-        public RealtimeCandleStickChartViewModel RealtimeCandleStickViewModel { get; }
+        public TraderViewModel RealtimeCandleStickViewModel { get; }
     }
 }

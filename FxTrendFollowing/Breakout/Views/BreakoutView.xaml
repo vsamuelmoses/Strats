@@ -23,7 +23,7 @@
                         </StackPanel>
                     </Grid>
                     <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />
-                    <charting:RealtimeCandleStickChartView
+                    <charting:TraderView
                         DataContext="{Binding ChartVm}"/>
                     <GridSplitter/>
                     <!--<oxy:PlotView Model="{Binding Reporters.ChartReport.PlotModel}"/>-->
