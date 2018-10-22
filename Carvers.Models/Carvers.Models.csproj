@@ -77,6 +77,7 @@
     <Compile Include="IClosedOrder.cs" />
     <Compile Include="Events\IEvent.cs" />
     <Compile Include="Indicators\Condition.cs" />
+    <Compile Include="Indicators\IIndicator.cs" />
     <Compile Include="Indicators\MovingAverage.cs" />
     <Compile Include="Indicators\SupportResistance.cs" />
     <Compile Include="IOpenOrder.cs" />

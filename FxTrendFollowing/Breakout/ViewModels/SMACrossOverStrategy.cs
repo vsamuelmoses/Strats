@@ -1,13 +1,9 @@
 ﻿using Carvers.Infra.Extensions;
 using Carvers.Models;
-using Carvers.Models.Extensions;
 using Carvers.Models.Indicators;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 using Carvers.Infra.Math.Geometry;
 
 namespace FxTrendFollowing.Breakout.ViewModels

@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Carvers.Charting.ViewModels;
@@ -18,6 +21,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
     public class SMAStrategyViewModel : ViewModel
     {
         private string _status;
+        private Subject<SMAContext> _contextStream;
+        private TraderViewModel _chartVm;
 
         public SMAStrategyViewModel()
         {
@@ -30,15 +35,19 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
             var interestedPairs = new[] { CurrencyPair.EURUSD };
 
+            _contextStream = new Subject<SMAContext>();
+            
             Strategy = new Strategy("Simple Breakout");
             var context = new SMAContext(Strategy, 
-                new MovingAverage(50, 3), 
-                new MovingAverage(100, 3), 
-                new MovingAverage(250, 3), 
-                new MovingAverage(500, 3), 
-                new MovingAverage(1000, 3), 
-                new MovingAverage(3600, 3), 
-                new ExponentialMovingAverage(3600, 3), 
+                new MovingAverage("SMA 50", 50, 3), 
+                new MovingAverage("SMA 100", 100, 3), 
+                new MovingAverage("SMA 250", 250, 3), 
+                new MovingAverage("SMA 500", 500, 3), 
+                new MovingAverage("SMA 1000", 1000, 3), 
+                new MovingAverage("SMA 3600", 3600, 3), 
+                new ExponentialMovingAverage("EMA 3600", 3600, 3),
+                new ExponentialMovingAverage("EMA 3600 L", 3600, 3),
+                new ExponentialMovingAverage("EMA 3600 H", 3600, 3),
                 new EmptyContext());
 
             var nextCondition = SMACrossOverStrategy.Strategy;
@@ -51,6 +60,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                 var candle = msg.ToCandle(TimeSpan.FromMinutes(1));
                 Status = $"Executing {candle.TimeStamp}";
                 (nextCondition, context) = nextCondition().Evaluate(context, candle);
+                _contextStream.OnNext(context);
             });
 
             StartCommand = new RelayCommand(_ =>
@@ -68,12 +78,23 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
-            ChartVm = new TraderViewModel(candleStream,
-                summaryReport.ProfitLossStream,
-                Strategy.OpenOrders
-                    .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
-                    .Merge(Strategy.CloseddOrders
-                        .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))));
+
+            TraderViewModel.ConstructTraderViewModel(
+                    candleStream.Zip(_contextStream,
+                        (candle, ctx) => (candle,
+                            (IEnumerable<(IIndicator, double)>) new List<(IIndicator, double)>()
+                            {
+                                (ctx.Sma50, ctx.Sma50.Current),
+                                (ctx.ExMa3600, ctx.ExMa3600.Current),
+                                (ctx.ExMa3600L, ctx.ExMa3600L.Current),
+                                (ctx.ExMa3600H, ctx.ExMa3600H.Current)
+                            })),
+                    summaryReport.ProfitLossStream,
+                    Strategy.OpenOrders
+                        .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
+                        .Merge(Strategy.CloseddOrders
+                            .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))))
+                .ContinueWith(t => ChartVm = t.Result);
         }
 
         public ICommand StartCommand { get; }
@@ -93,6 +114,19 @@ namespace FxTrendFollowing.Breakout.ViewModels
         }
 
         public Carvers.Infra.ViewModels.Reporters Reporters { get; }
-        public TraderViewModel ChartVm { get; }
+
+        public TraderViewModel ChartVm
+        {
+            get
+            {
+                return _chartVm;
+            }
+
+            private set
+            {
+                _chartVm = value;
+                OnPropertyChanged();
+            }
+        }
     }
 }

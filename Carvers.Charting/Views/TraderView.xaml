@@ -13,36 +13,9 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- The SciChartInteractionToolbar adds zoom, pan, zoom extents and rotate functionality -->
-        <!-- to the chart and is included for example purposes. -->
-        <!-- If you wish to know how to zoom and pan a chart then do a search for Zoom Pan in the Examples suite! -->
-        <!--<SciChartInteractionToolbar TargetSurface="{Binding ElementName=sciChart}"/>-->
-
         <s:SciChartSurface x:Name="sciChart" Padding="0" BorderThickness="0" Grid.Column="1"
                            RenderableSeries="{Binding SeriesViewModels}"
                            Annotations="{Binding AnnotationCollection}">
-
-            <!--<s:SciChartSurface.RenderableSeries>
-                <s:FastCandlestickRenderableSeries>
-                    <s:FastCandlestickRenderableSeries.FillUp>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Offset="0" Color="#55002200"/>
-                            <GradientStop Offset="1" Color="#FF00AA00"/>
-                        </LinearGradientBrush>
-                    </s:FastCandlestickRenderableSeries.FillUp>
-                    <s:FastCandlestickRenderableSeries.FillDown>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Offset="0" Color="#55441111"/>
-                            <GradientStop Offset="1" Color="#FFFF0000"/>
-                        </LinearGradientBrush>
-                    </s:FastCandlestickRenderableSeries.FillDown>
-                </s:FastCandlestickRenderableSeries>
-                <s:FastLineRenderableSeries Stroke="#FF1919"/>
-                <s:FastLineRenderableSeries Stroke="#1964FF"/>
-                <s:FastLineRenderableSeries Stroke="#FF9B27"/>
-            </s:SciChartSurface.RenderableSeries>-->
-
-
 
             <s:SciChartSurface.XAxis>
                 <s:CategoryDateTimeAxis GrowBy="0.0, 0.1" DrawMajorBands="True"/>

@@ -18,13 +18,13 @@ namespace Carvers.Charting.ViewModels
 {
     public class RealtimeCandleStickChartViewModel : ViewModel
     {
-        private readonly MovingAverage _sma50 = new MovingAverage(50);
-        private readonly MovingAverage _sma100 = new MovingAverage(100);
-        private readonly MovingAverage _sma250 = new MovingAverage(250);
-        private readonly MovingAverage _sma500 = new MovingAverage(500);
-        private readonly MovingAverage _sma1000 = new MovingAverage(1000);
-        private readonly MovingAverage _sma3600 = new MovingAverage(3600);
-        private readonly ExponentialMovingAverage _ex3600 = new ExponentialMovingAverage(3600);
+        private readonly MovingAverage _sma50 = new MovingAverage("50 SMA", 50);
+        private readonly MovingAverage _sma100 = new MovingAverage("100 SMA", 100);
+        private readonly MovingAverage _sma250 = new MovingAverage("250 SMA", 250);
+        private readonly MovingAverage _sma500 = new MovingAverage("500 SMA", 500);
+        private readonly MovingAverage _sma1000 = new MovingAverage("1000 SMA", 1000);
+        private readonly MovingAverage _sma3600 = new MovingAverage("3600 SMA", 3600);
+        private readonly ExponentialMovingAverage _ex3600 = new ExponentialMovingAverage("3600 EMA", 3600);
 
 
         private readonly double _barTimeFrame = TimeSpan.FromMinutes(5).TotalSeconds;

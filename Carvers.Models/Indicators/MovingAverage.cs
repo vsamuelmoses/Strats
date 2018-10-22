@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Carvers.Models.Indicators
 {
-    public class MovingAverage
+    public class MovingAverage :IIndicator
     {
         private readonly int cacheSize;
         private readonly int _length;
@@ -17,8 +17,9 @@ namespace Carvers.Models.Indicators
 
         public ConcurrentQueue<double> Averages { get; private set; }
 
-        public MovingAverage(int length, int cacheSize = 1)
+        public MovingAverage(string description, int length, int cacheSize = 1)
         {
+            Description = description;
             _length = length;
             _oneOverLength = 1.0 / length;
             _circularBuffer = new double[length];
@@ -108,16 +109,19 @@ namespace Carvers.Models.Indicators
                 Averages.Enqueue(_current);
             }
         }
+
+        public string Description { get; }
     }
 
-    public sealed class ExponentialMovingAverage
+    public sealed class ExponentialMovingAverage : IIndicator
     {
         private readonly int _cacheSize;
         private readonly double _alpha;
         private double _current = double.NaN;
 
-        public ExponentialMovingAverage(int lookBack, int cacheSize = 1)
+        public ExponentialMovingAverage(string description, int lookBack, int cacheSize = 1)
         {
+            Description = description;
             _cacheSize = cacheSize;
             _alpha = 2f / (lookBack + 1);
             Averages = new ConcurrentQueue<double>();
@@ -146,6 +150,8 @@ namespace Carvers.Models.Indicators
                 Averages.Enqueue(_current);
             }
         }
+
+        public string Description { get; }
     }
 
     
