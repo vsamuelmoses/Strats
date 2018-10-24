@@ -86,7 +86,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             {
                                 (ctx.Sma50, ctx.Sma50.Current),
                                 (ctx.ExMa3600, ctx.ExMa3600.Current),
-                                (ctx.ExMa3600L, ctx.ExMa3600L.Current),
+                                (ctx.Sma1000, ctx.Sma1000.Current),
                                 (ctx.ExMa3600H, ctx.ExMa3600H.Current)
                             })),
                     summaryReport.ProfitLossStream,

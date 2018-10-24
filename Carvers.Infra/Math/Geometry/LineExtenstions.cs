@@ -1,6 +1,7 @@
 ﻿using System;
 using Carvers.Infra.Result;
 using System.Windows;
+using Math = System.Math;
 
 namespace Carvers.Infra.Math.Geometry
 {
@@ -8,10 +9,10 @@ namespace Carvers.Infra.Math.Geometry
     public static class LineExtenstions
     {
         public static bool HasSameStartPoint(this Line<double, double> line1, Line<double, double> line2)
-            => line1.Point1 == line2.Point1;
+            => line1.Start == line2.Start;
 
         public static bool HasSameEndPoint(this Line<double, double> line1, Line<double, double> line2)
-            => line1.Point2 == line2.Point2;
+            => line1.End == line2.End;
 
 
         //public static Result<Point> IntersectionPoint(this Line<double, double> line1, Line<double, double> line2)
@@ -42,7 +43,7 @@ namespace Carvers.Infra.Math.Geometry
 
         public static Tuple<Result<Point>, bool> IntersectionPoint(this Line<double, double> l1, Line<double, double> l2)
         {
-            return IntersectionPoint(l1.Point1.ToPoint(), l1.Point2.ToPoint(), l2.Point1.ToPoint(), l2.Point2.ToPoint());
+            return IntersectionPoint(l1.Start.ToPoint(), l1.End.ToPoint(), l2.Start.ToPoint(), l2.End.ToPoint());
         }
 
         public static Tuple<Result<Point> , bool> IntersectionPoint(Point p1, Point p2, Point p3, Point p4)
@@ -118,12 +119,35 @@ namespace Carvers.Infra.Math.Geometry
 
             return Tuple.Create(intersection.ToSuccess(), segments_intersect);
         }
+       
 
         public static Point ToPoint(this Point<double, double> dPoint)
             => new Point(dPoint.X, dPoint.Y);
 
-        public static double IntersectionAngleDegrees(this Line<double, double> line1, Line<double, double> line2)
-            => (System.Math.Atan2(line1.Point2.Y - line1.Point1.Y, line1.Point2.X - line1.Point1.X) - System.Math.Atan2(line2.Point2.Y - line2.Point1.Y, line2.Point2.X - line2.Point1.X)) * (180d/System.Math.PI);
+        public static double IntersectionAngleAtPoint1(this Line<double, double> line1, Line<double, double> line2)
+            => (System.Math.Atan2(line1.End.Y - line1.Start.Y, line1.End.X - line1.Start.X) - System.Math.Atan2(line2.End.Y - line2.Start.Y, line2.End.X - line2.Start.X)) * (180d/System.Math.PI);
 
+        public const double Rad2Deg = 180.0 / System.Math.PI;
+        public const double Deg2Rad = System.Math.PI / 180.0;
+
+        public static double AngleToHorizontalAxis(this Line<double, double> line)
+        {
+            return System.Math.Atan2(line.Start.Y - line.End.Y, line.End.X - line.Start.X) * Rad2Deg;
+        }
+    }
+
+    public static class VectorHelper
+    {
+        public static double GetAngle(Vector vec1, Vector vec2, Vector vec3)
+        {
+            var lenghtA = System.Math.Sqrt(System.Math.Pow(vec2.X - vec1.X, 2) + System.Math.Pow(vec2.Y - vec1.Y, 2));
+            var lenghtB = System.Math.Sqrt(System.Math.Pow(vec3.X - vec2.X, 2) + System.Math.Pow(vec3.Y - vec2.Y, 2));
+            var lenghtC = System.Math.Sqrt(System.Math.Pow(vec3.X - vec1.X, 2) + System.Math.Pow(vec3.Y - vec1.Y, 2));
+
+            var calc = ((lenghtA * lenghtA) + (lenghtB * lenghtB) - (lenghtC * lenghtC)) / (2 * lenghtA * lenghtB);
+
+            return System.Math.Acos(calc) * LineExtenstions.Rad2Deg;
+
+        }
     }
 }

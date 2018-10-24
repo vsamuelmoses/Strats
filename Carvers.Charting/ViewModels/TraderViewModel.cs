@@ -21,15 +21,6 @@ namespace Carvers.Charting.ViewModels
 {
     public class TraderViewModel : ViewModel
     {
-        //private readonly MovingAverage _sma50 = new MovingAverage(50);
-        //private readonly MovingAverage _sma100 = new MovingAverage(100);
-        //private readonly MovingAverage _sma250 = new MovingAverage(250);
-        //private readonly MovingAverage _sma500 = new MovingAverage(500);
-        //private readonly MovingAverage _sma1000 = new MovingAverage(1000);
-        //private readonly MovingAverage _sma3600 = new MovingAverage(3600);
-        //private readonly ExponentialMovingAverage _ex3600 = new ExponentialMovingAverage(3600);
-
-
         private readonly double _barTimeFrame = TimeSpan.FromMinutes(1).TotalSeconds;
         private Candle _lastCandle;
         private IndexRange _xVisibleRange;
@@ -83,11 +74,12 @@ namespace Carvers.Charting.ViewModels
                 .Select(i => (i, new XyDataSeries<DateTime, double> {SeriesName = i.Description}))
                 .ToDictionary(t => t.Item1, t => t.Item2);
 
-            _series.ForEach(s =>
+            _series
+                .Zip(_colors, (kvp, c) => (kvp, c)).ForEach(t =>
                 _seriesViewModels.Add(new FastLineRenderableSeries
                 {
-                    DataSeries = s.Value,
-                    Stroke = Colors.Orange
+                    DataSeries = t.Item1.Value,
+                    Stroke = t.Item2
                 }));
 
             plSeries = new XyDataSeries<DateTime, double> { SeriesName = "ProfitLoss" };
