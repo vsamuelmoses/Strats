@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
@@ -28,8 +29,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
         {
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
+                //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
@@ -39,15 +40,15 @@ namespace FxTrendFollowing.Breakout.ViewModels
             
             Strategy = new Strategy("Simple Breakout");
             var context = new SMAContext(Strategy, 
-                new MovingAverage("SMA 50", 50, 3), 
-                new MovingAverage("SMA 100", 100, 3), 
+                new MovingAverage("SMA 50", 50, 20), 
+                new MovingAverage("SMA 100", 100, 180), 
                 new MovingAverage("SMA 250", 250, 3), 
                 new MovingAverage("SMA 500", 500, 3), 
                 new MovingAverage("SMA 1000", 1000, 3), 
-                new MovingAverage("SMA 3600", 3600, 3), 
+                new MovingAverage("SMA 3600", 3600, 3600), 
                 new ExponentialMovingAverage("EMA 3600", 3600, 3),
-                new ExponentialMovingAverage("EMA 3600 L", 3600, 3),
-                new ExponentialMovingAverage("EMA 3600 H", 3600, 3),
+                new ExponentialMovingAverage("EMA 50", 50, 10),
+                new Lookback(180, new ConcurrentQueue<Candle>()), 
                 new EmptyContext());
 
             var nextCondition = SMACrossOverStrategy.Strategy;
@@ -86,8 +87,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             {
                                 (ctx.Sma50, ctx.Sma50.Current),
                                 (ctx.ExMa3600, ctx.ExMa3600.Current),
-                                (ctx.Sma1000, ctx.Sma1000.Current),
-                                (ctx.ExMa3600H, ctx.ExMa3600H.Current)
+                                (ctx.Sma250, ctx.Sma3600.Current - 0.00120),
+                                (ctx.Sma100, ctx.Sma3600.Current + 0.00120),
+                                (ctx.Sma3600, ctx.Sma3600.Current),
+                                (ctx.ExMa50, ctx.ExMa50.Current)
                             })),
                     summaryReport.ProfitLossStream,
                     Strategy.OpenOrders

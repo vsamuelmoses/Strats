@@ -1,14 +1,14 @@
-﻿using System;
+﻿using Carvers.IBApi.Extensions;
+using Carvers.Infra;
+using Carvers.Infra.Extensions;
+using Carvers.Models;
+using IBApi;
+using IBSampleApp.messages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
-using Carvers.IBApi.Extensions;
-using Carvers.Infra;
-using Carvers.Models;
-using IBApi;
-using IBSampleApp.messages;
-using Carvers.Infra.Extensions;
 
 namespace Carvers.IBApi
 {
@@ -105,6 +105,7 @@ namespace Carvers.IBApi
                     if(toSend.Timestamp.UnixEpochToLocalTime() >= startTime)
                         realTimeBarMsgSubject.OnNext(toSend);
                 }
+
             });
         }
 

@@ -115,6 +115,8 @@ namespace Carvers.Models.Indicators
         public Price ProfitLoss => ClosedOrders.ProfitLoss();
         public StockData Data => throw new NotImplementedException();
         //public Carvers.Infra.ViewModels.Reporters Reporters { get; private set; }
+
+        
     }
 
     public class StrategyContext : IContext

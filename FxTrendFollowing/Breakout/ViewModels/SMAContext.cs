@@ -17,8 +17,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
             MovingAverage sma1000,
             MovingAverage sma3600,
             ExponentialMovingAverage exma3600,
-            ExponentialMovingAverage exMa3600L,
-            ExponentialMovingAverage exMa3600H,
+            ExponentialMovingAverage exma50,
+            Lookback lookback,
             IContextInfo contextInfo)
         {
             Strategy = strategy;
@@ -29,15 +29,16 @@ namespace FxTrendFollowing.Breakout.ViewModels
             Sma1000 = sma1000;
             Sma3600 = sma3600;
             ExMa3600 = exma3600;
-            ExMa3600H = exMa3600H;
-            ExMa3600L = exMa3600L;
+            ExMa50 = exma50;
             ContextInfo = contextInfo;
+            Lookback = lookback;
 
             smas = new List<MovingAverage> { Sma50, Sma100, Sma250, Sma500, Sma1000, Sma3600 };
         }
 
         public IContext Add(Candle candle)
         {
+            Lookback.Add(candle);
             LastCandle = candle;
             smas.Foreach(sma =>
             {
@@ -46,10 +47,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
             });
 
             ExMa3600.Push(candle.Close);
-            ExMa3600L.Push(candle.Low);
-            ExMa3600H.Push(candle.High);
+            ExMa50.Push(candle.High);
             return this;
         }
+        
 
         public Candle LastCandle { get; private set; }
 
@@ -64,8 +65,8 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public MovingAverage Sma1000 { get; }
         public MovingAverage Sma3600 { get; private set; }
         public ExponentialMovingAverage ExMa3600 { get; private set; }
-        public ExponentialMovingAverage ExMa3600H { get; }
-        public ExponentialMovingAverage ExMa3600L { get; }
+        public ExponentialMovingAverage ExMa50 { get; }
         public IContextInfo ContextInfo { get; }
+        public Lookback Lookback { get; }
     }
 }

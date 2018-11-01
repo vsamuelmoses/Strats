@@ -1,11 +1,10 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Collections.Generic;
+using System.Windows;
 using Carvers.Infra.Math.Geometry;
 using Carvers.Infra.Result;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Mathf = System.Math;
-using Vector = System.Windows.Vector;
 
 namespace Carvers.Infra.Tests.Math.Geometry
 {
@@ -131,6 +130,24 @@ namespace Carvers.Infra.Tests.Math.Geometry
                 var angle = System.Windows.Vector.AngleBetween(vector, vector2);
 
                 var a = VectorHelper.GetAngle(vector, vector2, origin);
+            }
+
+            [TestMethod]
+            public void GenerateLinearBestFitTest()
+            {
+                var points = new List<Point>
+                {
+                    new Point(1,1),
+                    new Point(2,2),
+                    new Point(3,3),
+                    new Point(4,4),
+                    new Point(3,1),
+                };
+
+                double a;
+                double b;
+                var newPoints = Geometrics.GenerateLinearBestFit(points, out a, out b);
+
             }
         }
     }

@@ -92,6 +92,7 @@
     <Compile Include="Breakout\ViewModels\ContextExtensions.cs" />
     <Compile Include="Breakout\ViewModels\MultipleSmaPatternsStrategy.cs" />
     <Compile Include="Breakout\ViewModels\SimpleBreakout.cs" />
+    <Compile Include="Breakout\ViewModels\SMAAngles.cs" />
     <Compile Include="Breakout\ViewModels\SMAContext.cs" />
     <Compile Include="Breakout\ViewModels\SmaContextInfo.cs" />
     <Compile Include="Breakout\ViewModels\SMACrossOverStrategy.cs" />

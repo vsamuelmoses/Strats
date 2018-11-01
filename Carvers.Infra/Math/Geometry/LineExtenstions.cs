@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Carvers.Infra.Result;
 using System.Windows;
 using Math = System.Math;
@@ -148,6 +150,27 @@ namespace Carvers.Infra.Math.Geometry
 
             return System.Math.Acos(calc) * LineExtenstions.Rad2Deg;
 
+        }
+    }
+
+    public static class Geometrics
+    {
+        public static List<Point> GenerateLinearBestFit(List<Point> points, out double a, out double b)
+        {
+            int numPoints = points.Count;
+            double meanX = points.Average(point => point.X);
+            double meanY = points.Average(point => point.Y);
+
+            double sumXSquared = points.Sum(point => point.X * point.X);
+            double sumXY = points.Sum(point => point.X * point.Y);
+
+            a = (sumXY / numPoints - meanX * meanY) / (sumXSquared / numPoints - meanX * meanX);
+            b = (a * meanX - meanY);
+
+            double a1 = a;
+            double b1 = b;
+
+            return points.Select(point => new Point { X = point.X, Y = a1 * point.X - b1 }).ToList();
         }
     }
 }
