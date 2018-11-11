@@ -66,12 +66,12 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
-            ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
-                summaryReport.ProfitLossStream,
-                Strategy.OpenOrders
-                        .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
-                    .Merge(Strategy.CloseddOrders
-                            .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))));
+            //ChartVm = new RealtimeCandleStickChartViewModel(candleStream,
+            //    summaryReport.ProfitLossStream,
+            //    Strategy.OpenOrders
+            //            .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
+            //        .Merge(Strategy.CloseddOrders
+            //                .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))));
         }
 
         public ICommand StartCommand { get; }
@@ -91,7 +91,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
         }
 
         public Carvers.Infra.ViewModels.Reporters Reporters { get; }
-        public RealtimeCandleStickChartViewModel ChartVm { get; }
+        //public RealtimeCandleStickChartViewModel ChartVm { get; }
     }
 
     public static class SimpleBreakoutStrategy

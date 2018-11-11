@@ -102,7 +102,7 @@ namespace Carvers.IBApi
                         return;
 
 
-                    if(toSend.Timestamp.UnixEpochToLocalTime() >= startTime)
+                    if(toSend.Timestamp.UnixEpochToLocalTime() >= startTime)    
                         realTimeBarMsgSubject.OnNext(toSend);
                 }
 

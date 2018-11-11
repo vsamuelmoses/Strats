@@ -14,7 +14,7 @@ namespace Carvers.Models.Indicators
     {
         Strategy Strategy { get; }
 
-        IContext Add(Candle candle);
+        //IContext Add(Candle candle);
     }
 
     public static class Extensions
@@ -51,7 +51,7 @@ namespace Carvers.Models.Indicators
         public ConcurrentQueue<Candle> Candles { get; }
         public Candle HighCandle { get; }
         public Candle LowCandle { get; }
-        public Candle LastCandle => Candles.Last();
+        public Candle LastCandle => Candles.LastOrDefault();
         public int Period { get; }
     }
 
@@ -193,10 +193,9 @@ namespace Carvers.Models.Indicators
 
         public Tuple<Condition<T>, T> Evaluate(T context, Candle candle)
         {
-            var newContext = (T)context.Add(candle);
-            if (predicate(newContext))
-                return Tuple.Create(onSuccess, newContext);
-            return Tuple.Create(onFailure, newContext);
+            if (predicate(context))
+                return Tuple.Create(onSuccess, context);
+            return Tuple.Create(onFailure, context);
         }
 
         public bool IsSuccess { get; }
@@ -575,11 +574,10 @@ namespace Carvers.Models.Indicators
 
         public Tuple<Func<FuncCondition<T>>, T> Evaluate(T context, Candle candle)
         {
-            var newContext = (T)context.Add(candle);
-            if (predicates.All(predicate => predicate(newContext)))
-                return Tuple.Create(onSuccess, onSuccessAction(newContext));
+            if (predicates.All(predicate => predicate(context)))
+                return Tuple.Create(onSuccess, onSuccessAction(context));
             else
-                return Tuple.Create(onFailure, onFailureAction(newContext));
+                return Tuple.Create(onFailure, onFailureAction(context));
         }
 
         public bool IsSuccess { get; }

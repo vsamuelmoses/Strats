@@ -1,16 +1,14 @@
-﻿using Carvers.Infra.Extensions;
-using Carvers.Models;
+﻿using Carvers.Models;
 using Carvers.Models.Indicators;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using Carvers.Infra.Math.Geometry;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
     public static class SMACrossOverStrategy
     {
+        private const string InterestedSMA = Indicators.CloseSma14;
+
         private static Func<FuncCondition<SMAContext>> contextReadyCondition = () =>
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
@@ -26,78 +24,86 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     {
                         ctx =>
                         {
-                            var sma3600LineMax = ctx.Sma3600.Averages.TakeLast(3).Select(p => p + 0.00120).GetLine(3);
-                            var exma50 = ctx.ExMa50.Averages.GetLine(3);
-                            var sma3600LineMin = ctx.Sma3600.Averages.TakeLast(3).Select(p => p - 0.00120).GetLine(3);
+                            //var sma3600LineMax = ctx.Sma3600.Averages.TakeLast(3).Select(p => p + 0.00120).GetLine(3);
+                            //var exma50 = ctx.ExMa50.Averages.GetLine(3);
+                            //var sma3600LineMin = ctx.Sma3600.Averages.TakeLast(3).Select(p => p - 0.00120).GetLine(3);
 
-                            var isCrossed =  !sma3600LineMax.HasSameStartPoint(exma50)
-                                   && !sma3600LineMax.HasSameEndPoint(exma50)
-                                   && sma3600LineMax.IntersectionPoint(exma50).Item2
-                                   && ctx.ExMa50.Current > ctx.Sma3600.Current
-                                && ctx.LastCandle.Close > ctx.Sma3600.Current + 0.00120
-                                && ctx.LastCandle.Close < ctx.Sma3600.Current + 0.00120 + 0.00050;
+                            //var isCrossed = !sma3600LineMax.HasSameStartPoint(exma50)
+                            //                && !sma3600LineMax.HasSameEndPoint(exma50)
+                            //                && sma3600LineMax.IntersectionPoint(exma50).Item2
+                            //                && ctx.ExMa50.Current > ctx.Sma3600.CurrentValue
+                            //                && ctx.LastCandle.Close > ctx.Sma3600.CurrentValue + 0.00120;
+                            //                //&& ctx.LastCandle.Close < ctx.Sma3600.Current + 0.00120;// + 0.00050;
 
-                            if (!isCrossed)
-                                isCrossed =  !sma3600LineMin.HasSameStartPoint(exma50)
-                                             && !sma3600LineMin.HasSameEndPoint(exma50)
-                                             && sma3600LineMin.IntersectionPoint(exma50).Item2
-                                             && ctx.ExMa50.Current < ctx.Sma3600.Current
-                                             && ctx.LastCandle.Close < ctx.Sma3600.Current - 0.00120
-                                             && ctx.LastCandle.Close > ctx.Sma3600.Current - 0.00120 - 0.00050;
-
-
+                            //if (!isCrossed)
+                            //    isCrossed = !sma3600LineMin.HasSameStartPoint(exma50)
+                            //                && !sma3600LineMin.HasSameEndPoint(exma50)
+                            //                && sma3600LineMin.IntersectionPoint(exma50).Item2
+                            //                && ctx.ExMa50.Current < ctx.Sma3600.CurrentValue
+                            //                && ctx.LastCandle.Close < ctx.Sma3600.CurrentValue - 0.00120;
+                            //                //&& ctx.LastCandle.Close > ctx.Sma3600.Current - 0.00120;// - 0.00050;
 
 
 
-                            //if(isCrossed 
-                            //   && (ctx.Sma3600.Averages.Last() < ctx.ExMa50.Averages.Last())
-                            //   && ctx.LastCandle.Close > ctx.Sma3600.Current
-                            //   && ctx.Sma3600.Current == ctx.Sma3600.Averages.Max())
-                            //return true;
 
 
-                            //if(isCrossed
-                            //   && (ctx.Sma3600.Averages.Last() > ctx.ExMa50.Averages.Last())
-                            //   && ctx.LastCandle.Close < ctx.Sma3600.Current
-                            //   && ctx.Sma3600.Current == ctx.Sma3600.Averages.Min())
-                            //    return true;
+                            ////if(isCrossed 
+                            ////   && (ctx.Sma3600.Averages.Last() < ctx.ExMa50.Averages.Last())
+                            ////   && ctx.LastCandle.Close > ctx.Sma3600.Current
+                            ////   && ctx.Sma3600.Current == ctx.Sma3600.Averages.Max())
+                            ////return true;
 
 
-                            //var smas = new double[]
-                            //{
+                            ////if(isCrossed
+                            ////   && (ctx.Sma3600.Averages.Last() > ctx.ExMa50.Averages.Last())
+                            ////   && ctx.LastCandle.Close < ctx.Sma3600.Current
+                            ////   && ctx.Sma3600.Current == ctx.Sma3600.Averages.Min())
+                            ////    return true;
 
-                            //    ctx.Sma50.Current,
-                            //    ctx.Sma100.Current,
-                            //    ctx.Sma250.Current,
-                            //    ctx.Sma500.Current,
-                            //    ctx.Sma1000.Current,
-                            //    ctx.Sma3600.Current,
-                            //};
 
-                            //if (isCrossed
-                            //   && (ctx.Sma3600.Averages.Last() < ctx.ExMa3600.Averages.Last())
-                            //   && ctx.Sma100.Current > ctx.Sma3600.Current)
-                            //    return true;
+                            ////var smas = new double[]
+                            ////{
 
-                            //if (isCrossed
-                            //    && (ctx.Sma3600.Averages.Last() > ctx.ExMa3600.Averages.Last())
-                            //    && ctx.Sma100.Current < ctx.Sma3600.Current)
-                            //    return true;
+                            ////    ctx.Sma50.Current,
+                            ////    ctx.Sma100.Current,
+                            ////    ctx.Sma250.Current,
+                            ////    ctx.Sma500.Current,
+                            ////    ctx.Sma1000.Current,
+                            ////    ctx.Sma3600.Current,
+                            ////};
 
-                            return isCrossed;
+                            ////if (isCrossed
+                            ////   && (ctx.Sma3600.Averages.Last() < ctx.ExMa3600.Averages.Last())
+                            ////   && ctx.Sma100.Current > ctx.Sma3600.Current)
+                            ////    return true;
+
+                            ////if (isCrossed
+                            ////    && (ctx.Sma3600.Averages.Last() > ctx.ExMa3600.Averages.Last())
+                            ////    && ctx.Sma100.Current < ctx.Sma3600.Current)
+                            ////    return true;
+
+
+                            if ((ctx.LastCandle.Low < ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value 
+                                 && ctx.LastCandle.Close > ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value
+                                 &&  CandleSentiment.Of(ctx.LastCandle) == CandleSentiment.Red)
+                                || (ctx.LastCandle.High > ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value 
+                                    && ctx.LastCandle.Close < ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value 
+                                    &&  CandleSentiment.Of(ctx.LastCandle) == CandleSentiment.Green))
+                                return true;
+
+
+                            return false;
 
                         }
                     }
                 },
                 onSuccessAction: ctx =>
                 {
-                    if (ctx.Sma3600.Averages.Last() < ctx.ExMa50.Averages.Last())
-                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy)
-                            .AddContextInfo(new SmaContextInfo(ctx.Sma3600.Current, ctx.Sma50.Current, (ctx.Strategy.OpenOrder, ctx.Lookback.Candles.Max(c => c.High))));
+                    if (ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value < ctx.LastCandle.Close)
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell);
 
-                    if (ctx.Sma3600.Averages.Last() > ctx.ExMa50.Averages.Last())
-                        return ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell)
-                            .AddContextInfo(new SmaContextInfo(ctx.Sma3600.Current, ctx.Sma50.Current, (ctx.Strategy.OpenOrder, ctx.Lookback.Candles.Min(c => c.Low))));
+                    if (ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value > ctx.LastCandle.Close)
+                        return ctx.PlaceOrder(ctx.LastCandle, Side.Buy);
 
                     throw new Exception("Unexpected");
                 });
@@ -115,59 +121,28 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             //if (Math.Abs(ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle, 100000)) >= 250)
                             //    return true;
 
-                            Debug.Assert(((SmaContextInfo) ctx.ContextInfo).StopLossLimit.Item1 ==
-                                         ctx.Strategy.OpenOrder);
-
-
                             //var stopLoss = ((SmaContextInfo) ctx.ContextInfo).StopLossLimit.Item2 + 0.00050;
                             var openPrice = ctx.Strategy.OpenOrder.OrderInfo.Price.Value;
-                            var stopLoss = 0.00250;
-
-                            var pl = Math.Abs(ctx.LastCandle.Close - openPrice);
+                            var stopLossPips = 8 * ctx.Indicators[Indicators.CandleBodySma5].OfType<MovingAverage>().Value;
+                            var takeProfitPips = 8 * ctx.Indicators[Indicators.CandleBodySma5].OfType<MovingAverage>().Value;
 
                             if (ctx.Strategy.OpenOrder is BuyOrder)
                             {
-                                if (pl > stopLoss)
+                                var pl = ctx.LastCandle.Close - openPrice;
+
+                                if (pl < -1* stopLossPips || pl > takeProfitPips)
                                     return true;
-
-
-                                //return (ctx.LastCandle.Close > ctx.Sma3600.Current);
                             }
 
                             if (ctx.Strategy.OpenOrder is ShortSellOrder)
                             {
-                                if (pl >  stopLoss)
+                                var pl = openPrice - ctx.LastCandle.Close;
+
+                                if (pl < -1* stopLossPips || pl > takeProfitPips)
                                     return true;
-
-                                //return (ctx.LastCandle.Close < ctx.Sma3600.Current) ;
-
-
-
                             }
 
                             return false;
-
-                            var movingAvgLine1Pts = ctx.ExMa50.Averages;
-                            var movingAvgLine2Pts = ctx.Sma250.Averages;
-
-                            var movingAvgLine1 = movingAvgLine1Pts.GetLine(3);
-                            var movingAvgLine2 = movingAvgLine2Pts.GetLine(3);
-
-                            if (ctx.Strategy.OpenOrder is BuyOrder)
-                            {
-                                return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
-                                && movingAvgLine1Pts.Last() > movingAvgLine2Pts.Last();
-                            }
-
-                            if (ctx.Strategy.OpenOrder is ShortSellOrder)
-                            {
-                                return movingAvgLine2.IntersectionPoint(movingAvgLine1).Item2
-                                && movingAvgLine1Pts.Last() < movingAvgLine2Pts.Last();
-                            }
-
-
-
-                            throw new Exception("Unexpected error");
                         }
 
 
@@ -343,4 +318,11 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
     //    public static Func<FuncCondition<SMAContext>> Strategy = contextReadyCondition;
     //}
+
+    public static class Indicators
+    {
+        public const string CloseSma5 = "SMA 5";
+        public const string CloseSma14 = "SMA 14";
+        public const string CandleBodySma5 = "Body 5";
+    }
 }

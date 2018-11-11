@@ -24,8 +24,5 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
             throw new Exception("unexpected error");
         }
-
-        public static SMAContext AddContextInfo(this SMAContext context, IContextInfo info)
-            => new SMAContext(context.Strategy, context.Sma50, context.Sma100, context.Sma250, context.Sma500, context.Sma1000, context.Sma3600, context.ExMa3600, context.ExMa50, context.Lookback, info);
     }
 }

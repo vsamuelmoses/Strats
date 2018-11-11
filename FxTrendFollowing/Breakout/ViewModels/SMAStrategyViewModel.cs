@@ -1,18 +1,18 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Carvers.Charting.MultiPane;
 using Carvers.Charting.ViewModels;
 using Carvers.IB.App;
 using Carvers.IBApi;
 using Carvers.IBApi.Extensions;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
+using Carvers.Models.DataReaders;
 using Carvers.Models.Events;
 using Carvers.Models.Indicators;
 using IBApi;
@@ -24,45 +24,54 @@ namespace FxTrendFollowing.Breakout.ViewModels
         private string _status;
         private Subject<SMAContext> _contextStream;
         private TraderViewModel _chartVm;
+        private MultiTraderViewModel _multiTraderVm;
+        private CreateMultiPaneStockChartsViewModel _traderChart;
 
         public SMAStrategyViewModel()
         {
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 01, 15, 0, 0, 0, TimeSpan.Zero));
+                //new DateTimeOffset(2017, 07, 30, 0, 0, 0, TimeSpan.Zero));
                 //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
-            var interestedPairs = new[] { CurrencyPair.EURUSD };
+            var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             _contextStream = new Subject<SMAContext>();
             
             Strategy = new Strategy("Simple Breakout");
-            var context = new SMAContext(Strategy, 
-                new MovingAverage("SMA 50", 50, 20), 
-                new MovingAverage("SMA 100", 100, 180), 
-                new MovingAverage("SMA 250", 250, 3), 
-                new MovingAverage("SMA 500", 500, 3), 
-                new MovingAverage("SMA 1000", 1000, 3), 
-                new MovingAverage("SMA 3600", 3600, 3600), 
-                new ExponentialMovingAverage("EMA 3600", 3600, 3),
-                new ExponentialMovingAverage("EMA 50", 50, 10),
-                new Lookback(180, new ConcurrentQueue<Candle>()), 
-                new EmptyContext());
 
             var nextCondition = SMACrossOverStrategy.Strategy;
 
-            var candleStream = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
+            var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
+            var candleFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
+
+            var maStreaming = new MovingAverageStreamingService(Indicators.CloseSma5, candleFeed, candle => candle.Close, 5);
+            var ma14Streaming = new MovingAverageStreamingService(Indicators.CloseSma14, candleFeed, candle => candle.Close, 14);
+            var candleBodyLengthMaStreaming = new MovingAverageStreamingService(Indicators.CandleBodySma5, candleFeed, candle => Math.Abs(candle.Close - candle.Open), 5);
+
+            var context = new SMAContext(Strategy, new List<MovingAverage>
+            {
+                maStreaming.MovingAverage,
+                candleBodyLengthMaStreaming.MovingAverage
+            }, Candle.Null);
 
             //TODO: for manual feed, change the candle span
-            Ibtws.RealTimeBarStream.Subscribe(msg =>
-            {
-                var candle = msg.ToCandle(TimeSpan.FromMinutes(1));
-                Status = $"Executing {candle.TimeStamp}";
-                (nextCondition, context) = nextCondition().Evaluate(context, candle);
-                _contextStream.OnNext(context);
-            });
+            candleFeed.Zip(
+                    maStreaming.Stream, 
+                    ma14Streaming.Stream, 
+                    candleBodyLengthMaStreaming.Stream, 
+                    Tuple.Create)
+                .Subscribe(tup =>
+                {
+                    var candle = tup.Item1;
+                    Status = $"Executing {candle.TimeStamp}";
+                    var newcontext = new SMAContext(context.Strategy, new List<MovingAverage> { tup.Item2, tup.Item3, tup.Item4}, candle);
+                    (nextCondition, context) = nextCondition().Evaluate(newcontext, candle);
+                    _contextStream.OnNext(context);
+                });
 
             StartCommand = new RelayCommand(_ =>
             {
@@ -79,25 +88,31 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
 
+            var eventsFeed = Strategy.OpenOrders
+                .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
+                .Merge(Strategy.CloseddOrders
+                    .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
 
-            TraderViewModel.ConstructTraderViewModel(
-                    candleStream.Zip(_contextStream,
-                        (candle, ctx) => (candle,
-                            (IEnumerable<(IIndicator, double)>) new List<(IIndicator, double)>()
-                            {
-                                (ctx.Sma50, ctx.Sma50.Current),
-                                (ctx.ExMa3600, ctx.ExMa3600.Current),
-                                (ctx.Sma250, ctx.Sma3600.Current - 0.00120),
-                                (ctx.Sma100, ctx.Sma3600.Current + 0.00120),
-                                (ctx.Sma3600, ctx.Sma3600.Current),
-                                (ctx.ExMa50, ctx.ExMa50.Current)
-                            })),
-                    summaryReport.ProfitLossStream,
-                    Strategy.OpenOrders
-                        .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))
-                        .Merge(Strategy.CloseddOrders
-                            .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order))))
-                .ContinueWith(t => ChartVm = t.Result);
+            var priceChart = candleFeed.Zip(_contextStream,
+                (candle, ctx) => (candle,
+                    ctx.Indicators
+                        .Where(i => i.Key != Indicators.CandleBodySma5)
+                        .Select(i => i.Value)
+                        .OfType<MovingAverage>()
+                        .Select(i => ((IIndicator)i, i.Value))));
+
+           TraderChart = new CreateMultiPaneStockChartsViewModel(priceChart, 
+                new List<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>>() { }, eventsFeed);
+        }
+
+        public CreateMultiPaneStockChartsViewModel TraderChart
+        {
+            get => _traderChart;
+            set
+            {
+                _traderChart = value; 
+                OnPropertyChanged();
+            }
         }
 
         public ICommand StartCommand { get; }

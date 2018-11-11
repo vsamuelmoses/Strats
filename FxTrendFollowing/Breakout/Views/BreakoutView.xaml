@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:FxTrendFollowing.Breakout.Views"
         xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:charting="clr-namespace:Carvers.Charting.Views;assembly=Carvers.Charting"
+        xmlns:multiPane="clr-namespace:Carvers.Charting.MultiPane;assembly=Carvers.Charting"
         mc:Ignorable="d"
         Title="BreakoutView" Height="450" Width="800">
     <Grid>
@@ -23,8 +24,11 @@
                         </StackPanel>
                     </Grid>
                     <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />
-                    <charting:TraderView
-                        DataContext="{Binding ChartVm}"/>
+                    <!--<charting:TraderView
+                        DataContext="{Binding ChartVm}"/>-->
+                    
+                    <!--<charting:TraderView DataContext="{Binding ChartVm}"></charting:TraderView>-->
+                    <multiPane:CreateMultiPaneStockCharts DataContext="{Binding TraderChart}"/>
                 </DockPanel>
             </TabItem>
         </TabControl>

@@ -12,8 +12,8 @@
                 <charting:SciChartCandleStickExample/>
             </TabItem>-->
             <TabItem Header="Realtime Candle stick">
-                <views:TraderView
-                    DataContext="{Binding RealtimeCandleStickViewModel}"/>
+                <!--<views:TraderView
+                    DataContext="{Binding RealtimeCandleStickViewModel}"/>-->
             </TabItem>
         </TabControl>
     </Grid>

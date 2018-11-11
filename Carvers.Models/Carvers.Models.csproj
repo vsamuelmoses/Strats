@@ -76,9 +76,12 @@
     <Compile Include="Extensions\StringEntensions.cs" />
     <Compile Include="IClosedOrder.cs" />
     <Compile Include="Events\IEvent.cs" />
+    <Compile Include="Indicators\CandleExtenstions.cs" />
     <Compile Include="Indicators\Condition.cs" />
     <Compile Include="Indicators\IIndicator.cs" />
+    <Compile Include="Indicators\IndicatorBase.cs" />
     <Compile Include="Indicators\MovingAverage.cs" />
+    <Compile Include="Indicators\StochasticIndicator.cs" />
     <Compile Include="Indicators\SupportResistance.cs" />
     <Compile Include="IOpenOrder.cs" />
     <Compile Include="IOrder.cs" />

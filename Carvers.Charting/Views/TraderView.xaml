@@ -7,13 +7,13 @@
              xmlns:s="http://schemas.abtsoftware.co.uk/scichart"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <!--<Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <s:SciChartSurface x:Name="sciChart" Padding="0" BorderThickness="0" Grid.Column="1"
+        <s:SciChartSurface x:Name="sciChart" Padding="0" BorderThickness="0" Grid.Row="0"
                            RenderableSeries="{Binding SeriesViewModels}"
                            Annotations="{Binding AnnotationCollection}">
 
@@ -34,7 +34,178 @@
                     <s:ZoomPanModifier/>
                 </s:ModifierGroup>
             </s:SciChartSurface.ChartModifier>
-
         </s:SciChartSurface>
+
+        <Grid Grid.Row="1">
+
+            <s:SciChartSurface Padding="0" BorderThickness="0" Grid.Row="0"
+                               RenderableSeries="{Binding SeriesViewModels}"
+                               Annotations="{Binding AnnotationCollection}">
+
+                <s:SciChartSurface.XAxis>
+                    <s:CategoryDateTimeAxis GrowBy="0.0, 0.1" DrawMajorBands="True"/>
+                </s:SciChartSurface.XAxis>
+
+                <s:SciChartSurface.YAxes>
+                    <s:NumericAxis GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                    <s:NumericAxis Id="PnL" AxisAlignment="Left" GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                </s:SciChartSurface.YAxes>
+
+                <s:SciChartSurface.ChartModifier>
+                    <s:ModifierGroup>
+                        <s:LegendModifier ShowLegend="True" Orientation="Horizontal"/>
+                        <s:MouseWheelZoomModifier />
+                        <s:ZoomExtentsModifier ExecuteOn="MouseDoubleClick"/>
+                        <s:ZoomPanModifier/>
+                    </s:ModifierGroup>
+                </s:SciChartSurface.ChartModifier>
+            </s:SciChartSurface>
+
+
+            --><!--  This is the Chart behind the scrollbar, bound to the First ChartPaneViewModel, first DataSeries  -->
+            <!--  It displays the data as a FastMountainRenderableSeries  -->
+            
+            <!--Style="{StaticResource OverviewChartStyle}"--><!--
+
+            <s:SciStockChart x:Name="PART_ScrollbarChartBackground" ShowLegend="False" >
+
+                <s:SciStockChart.RenderableSeries>
+                    <s:FastMountainRenderableSeries DataSeries="{Binding SeriesViewModels[0].DataSeries}"/>
+                </s:SciStockChart.RenderableSeries>
+
+            </s:SciStockChart>
+
+            --><!--  This is the scrollbar, its bound to the PART_ChartPaneView.XAxis above  --><!--
+            <s:SciChartScrollbar Margin="{Binding ElementName=PART_ChartPaneView, Path=Padding, Mode=OneWay}" Axis="{Binding ElementName=PART_ChartPaneView, Path=XAxis}"/>--><!--
+        </Grid>
+        --><!--Style="{StaticResource ScrollBarStyle}"--><!--
+</Grid>-->
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <s:SciChartSurface Padding="0" BorderThickness="0" Grid.Row="0"
+                           RenderableSeries="{Binding Chart1SeriesViewModels}"
+                           Annotations="{Binding AnnotationCollection}">
+            <s:SciChartSurface.XAxis>
+                <s:CategoryDateTimeAxis GrowBy="0.0, 0.1" DrawMajorBands="True"/>
+            </s:SciChartSurface.XAxis>
+
+            <s:SciChartSurface.YAxes>
+                <s:NumericAxis GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                <s:NumericAxis Id="PnL" AxisAlignment="Left" GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+            </s:SciChartSurface.YAxes>
+
+            <s:SciChartSurface.ChartModifier>
+
+                <!--  Whats going on here?  -->
+                <!--  We share the mouse events by using MouseManager.MouseEventGroup="..."  -->
+                <!--  We ensure modifiers receive events even when another has handled by setting ReceiveHandledEvents=true  -->
+                <!--  We bind both charts XAxis to shared property on the viewmodel to ensure they stay in sync  -->
+                <s:ModifierGroup s:MouseManager.MouseEventGroup="myCustomGroup">
+                    <s:RubberBandXyZoomModifier IsXAxisOnly="True"
+                                                ReceiveHandledEvents="True" />
+                    <s:ZoomPanModifier ReceiveHandledEvents="True"/>
+                    <s:MouseWheelZoomModifier/>
+                    <s:RolloverModifier ReceiveHandledEvents="True"/>
+                    <!--<s:CursorModifier ReceiveHandledEvents="True"/>-->
+                    <s:YAxisDragModifier Tag="FirstYAxis"/>
+                    <s:XAxisDragModifier/>
+                    <s:ZoomExtentsModifier/>
+                </s:ModifierGroup>
+            </s:SciChartSurface.ChartModifier>
+        </s:SciChartSurface>
+
+        <s:SciChartSurface Padding="0" BorderThickness="0" Grid.Row="1"
+                           RenderableSeries="{Binding Chart2SeriesViewModels}">
+            <s:SciChartSurface.XAxis>
+                <s:CategoryDateTimeAxis GrowBy="0.0, 0.1" DrawMajorBands="True"/>
+            </s:SciChartSurface.XAxis>
+
+            <s:SciChartSurface.YAxis>
+                <s:NumericAxis GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+            </s:SciChartSurface.YAxis>
+
+            <s:SciChartSurface.ChartModifier>
+                <s:ModifierGroup s:MouseManager.MouseEventGroup="myCustomGroup">
+                    <s:RubberBandXyZoomModifier IsXAxisOnly="True" ReceiveHandledEvents="True" Tag="SecondYAxis"/>
+                    <s:ZoomPanModifier ReceiveHandledEvents="True" Tag="SecondYAxis"/>
+                    <s:MouseWheelZoomModifier Tag="SecondYAxis"/>
+                    <s:RolloverModifier ReceiveHandledEvents="True" Tag="SecondYAxis"/>
+                    <!--<s:CursorModifier  ReceiveHandledEvents="True" Tag="SecondYAxis"/>-->
+                    <s:YAxisDragModifier Tag="SecondYAxis"/>
+                    <s:XAxisDragModifier Tag="SecondYAxis"/>
+                    <s:ZoomExtentsModifier Tag="SecondYAxis"/>
+                </s:ModifierGroup>
+            </s:SciChartSurface.ChartModifier>
+        </s:SciChartSurface>
+
     </Grid>
+
+    <!--<s:SciChartGroup  ItemsSource="{Binding TraderViewModels}">
+        <s:SciChartGroup.ItemTemplate>
+            <DataTemplate>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <s:SciChartSurface x:Name="PART_ChartPaneView" Padding="0" BorderThickness="0" Grid.Row="0"
+                                       ViewportManager="{Binding ViewportManager}"
+                                       RenderableSeries="{Binding SeriesViewModels}"
+                                       Annotations="{Binding AnnotationCollection}">
+                        <s:SciChartSurface.XAxis>
+                            <s:CategoryDateTimeAxis GrowBy="0.0, 0.1" DrawMajorBands="True"/>
+                        </s:SciChartSurface.XAxis>
+
+                        <s:SciChartSurface.YAxes>
+                            <s:NumericAxis GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                            <s:NumericAxis Id="PnL" AxisAlignment="Left" GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                        </s:SciChartSurface.YAxes>
+
+                        <s:SciChartSurface.ChartModifier>
+                            <s:ModifierGroup s:MouseManager.MouseEventGroup="TraderChartMouseEventsGroup">
+                                <s:LegendModifier ShowLegend="True" Orientation="Horizontal"/>
+                                <s:MouseWheelZoomModifier />
+                                <s:ZoomExtentsModifier ExecuteOn="MouseDoubleClick"/>
+                                <s:ZoomPanModifier/>
+                            </s:ModifierGroup>
+                        </s:SciChartSurface.ChartModifier>
+                    </s:SciChartSurface>
+
+                    <s:SciChartSurface x:Name="PART_ChartPaneView1" Padding="0" BorderThickness="0" Grid.Row="1"
+                                       ViewportManager="{Binding ViewportManager}"
+                                       RenderableSeries="{Binding SeriesViewModels}"
+                                       Annotations="{Binding AnnotationCollection}">
+                        <s:SciChartSurface.XAxis>
+                            <s:CategoryDateTimeAxis GrowBy="0.0, 0.1" DrawMajorBands="True"/>
+                        </s:SciChartSurface.XAxis>
+
+                        <s:SciChartSurface.YAxes>
+                            <s:NumericAxis GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                            <s:NumericAxis Id="PnL" AxisAlignment="Left" GrowBy="0.1, 0.1" DrawMajorBands="True"/>
+                        </s:SciChartSurface.YAxes>
+
+                        <s:SciChartSurface.ChartModifier>
+                            <s:ModifierGroup s:MouseManager.MouseEventGroup="TraderChartMouseEventsGroup">
+                                <s:LegendModifier ShowLegend="True" Orientation="Horizontal"/>
+                                <s:MouseWheelZoomModifier />
+                                <s:ZoomExtentsModifier ExecuteOn="MouseDoubleClick"/>
+                                <s:ZoomPanModifier/>
+                            </s:ModifierGroup>
+                        </s:SciChartSurface.ChartModifier>
+                    </s:SciChartSurface>
+
+                    <s:SciChartScrollbar Grid.Row="2" Margin="{Binding ElementName=PART_ChartPaneView, Path=Padding, Mode=OneWay}" 
+                                         Axis="{Binding ElementName=PART_ChartPaneView, Path=XAxis}"/>
+                </Grid>
+            </DataTemplate>
+        </s:SciChartGroup.ItemTemplate>
+    </s:SciChartGroup>-->
 </UserControl>

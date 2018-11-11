@@ -1,116 +1,62 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
 
 namespace Carvers.Models.Indicators
 {
-    public class MovingAverage :IIndicator
+    public class MovingAverage : BaseIndicator<double>
     {
-        private readonly int cacheSize;
-        private readonly int _length;
-        private int _circIndex = -1;
-        private bool _filled;
-        //private double _current = double.NaN;
-        private readonly double _oneOverLength;
-        private readonly double[] _circularBuffer;
-        private double _total;
-        private double _current;
-
-        public ConcurrentQueue<double> Averages { get; private set; }
-
-        public MovingAverage(string description, int length, int cacheSize = 1)
+        private readonly double totalValue = double.NaN;
+        private readonly ConcurrentQueue<double> lookbackValues;
+        private MovingAverage(string description,
+            ConcurrentQueue<double> lookbackValues,
+            int length, 
+            double value,
+            double total,
+            DateTimeOffset timestamp)
+            : base(description, value, timestamp)
         {
-            Description = description;
-            _length = length;
-            _oneOverLength = 1.0 / length;
-            _circularBuffer = new double[length];
-
-            Averages = new ConcurrentQueue<double>();
-            this.cacheSize = cacheSize;
-
-            Current = double.NaN;
+            Length = length;
+            totalValue = total;
+            this.lookbackValues = lookbackValues;
+            Value = value;
         }
+        public int Length { get; }
 
-        public MovingAverage Update(double value)
+        public static MovingAverage Push(MovingAverage previousAvg, double value, DateTimeOffset timestamp)
         {
-            double lostValue = _circularBuffer[_circIndex];
-            _circularBuffer[_circIndex] = value;
+            double newTotalValue = double.NaN;
 
-            // Maintain totals for Push function
-            // skip NaN 
-            _total += double.IsNaN(value) ? 0d : value;
-            _total -= lostValue;
-
-            // If not yet filled, just return. Current value should be double.NaN
-            if (!_filled)
-            {
-                Current = double.NaN;
-                return this;
-            }
-
-            // Compute the average
-            double average = 0.0;
-            for (int i = 0; i < _circularBuffer.Length; i++)
-            {
-                average += _circularBuffer[i];
-            }
-
-            Current = average * _oneOverLength;
-
-            return this;
-        }
-
-        public MovingAverage Push(double value)
-        {
-            // Apply the circular buffer
-            if (++_circIndex == _length)
-            {
-                _circIndex = 0;
-            }
-
-            double lostValue = _circularBuffer[_circIndex];
-            _circularBuffer[_circIndex] = value;
-
-            // Compute the average
-            // Skip NaN 
-            _total += double.IsNaN(value) ? 0d : value;
-            _total -= lostValue;
-
-            // If not yet filled, just return. Current value should be double.NaN
-            if (!_filled && _circIndex != _length - 1)
-            {
-                Current = double.NaN;
-                return this;
-            }
+            if (double.IsNaN(previousAvg.totalValue))
+                newTotalValue = value;
             else
+                newTotalValue = previousAvg.totalValue + value;
+
+            double lostValue = 0d;
+            previousAvg.lookbackValues.Enqueue(value);
+
+            if (previousAvg.lookbackValues.Count > previousAvg.Length)
+                previousAvg.lookbackValues.TryDequeue(out lostValue);
+
+            newTotalValue = newTotalValue - lostValue;
+
+            if (previousAvg.lookbackValues.Count == previousAvg.Length)
             {
-                // Set a flag to indicate this is the first time the buffer has been filled
-                _filled = true;
+                var newAvgValue = newTotalValue / previousAvg.Length;
+                return new MovingAverage(previousAvg.Description, previousAvg.lookbackValues, previousAvg.Length, newAvgValue, newTotalValue, timestamp);
             }
 
-            Current = _total * _oneOverLength;
+            if (previousAvg.lookbackValues.Count < previousAvg.Length)
+                return new MovingAverage(previousAvg.Description, previousAvg.lookbackValues, previousAvg.Length, double.NaN, newTotalValue, timestamp);
 
-            return this;
+            throw new Exception("Unexpected error");
         }
 
-        public int Length => _length;
-        public double Current
+        public static MovingAverage Construct(string description, int length)
         {
-            get { return _current; }
-            private set
-            {
-                _current = value;
-
-                if (Averages.Count == cacheSize)
-                {
-                    double av;
-                    Averages.TryDequeue(out av);
-                }
-
-                Averages.Enqueue(_current);
-            }
+            return new MovingAverage(description, new ConcurrentQueue<double>(), length, double.NaN, double.NaN, DateTime.MinValue);
         }
 
-        public string Description { get; }
+        public override bool HasValidValue => !double.IsNaN(Value);
     }
 
     public sealed class ExponentialMovingAverage : IIndicator
@@ -152,7 +98,19 @@ namespace Carvers.Models.Indicators
         }
 
         public string Description { get; }
+        public bool HasValidValue => !double.IsNaN(Current);
     }
 
-    
+    public class AverageCandleIndicator
+    {
+        public AverageCandleIndicator(MovingAverage fullCandleLength, 
+            MovingAverage candleBodyLength)
+        {
+            FullCandleLength = fullCandleLength;
+            CandleBodyLength = candleBodyLength;
+        }
+
+        private MovingAverage FullCandleLength { get; }
+        private MovingAverage CandleBodyLength { get; }
+    }
 }

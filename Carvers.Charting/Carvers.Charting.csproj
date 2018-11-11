@@ -138,8 +138,17 @@
     <Compile Include="Annotations\UpArrowAnnotation.xaml.cs">
       <DependentUpon>UpArrowAnnotation.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MultiPane\BaseChartPaneViewModel.cs" />
+    <Compile Include="MultiPane\CreateMultiPaneStockCharts.xaml.cs">
+      <DependentUpon>CreateMultiPaneStockCharts.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MultiPane\CreateMultiPaneStockChartsViewModel.cs" />
+    <Compile Include="MultiPane\IndicatorPaneViewModel.cs" />
+    <Compile Include="MultiPane\PricePaneViewModel.cs" />
+    <Compile Include="MultiPane\RsiPaneViewModel.cs" />
+    <Compile Include="MultiPane\StockChartHelper.cs" />
+    <Compile Include="MultiPane\VolumePaneViewModel.cs" />
     <Compile Include="ViewModels\BuySellAnnotationViewModel.cs" />
-    <Compile Include="ViewModels\RealtimeCandleStickChartViewModel.cs" />
     <Compile Include="ViewModels\TraderViewModel.cs" />
     <Compile Include="Views\RealtimeCandleStickChartView.xaml.cs">
       <DependentUpon>RealtimeCandleStickChartView.xaml</DependentUpon>
@@ -154,6 +163,10 @@
     <Page Include="Annotations\UpArrowAnnotation.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="MultiPane\CreateMultiPaneStockCharts.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="SciChartCandleStickExample.xaml">
       <Generator>MSBuild:Compile</Generator>
