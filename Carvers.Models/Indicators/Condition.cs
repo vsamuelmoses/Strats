@@ -13,8 +13,6 @@ namespace Carvers.Models.Indicators
     public interface IContext
     {
         Strategy Strategy { get; }
-
-        //IContext Add(Candle candle);
     }
 
     public static class Extensions

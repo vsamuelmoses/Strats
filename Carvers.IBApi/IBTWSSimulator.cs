@@ -79,7 +79,7 @@ namespace Carvers.IBApi
                 while(true)
                 {
 
-                    var toSend = fileFeeds
+                    var firstEntry = fileFeeds
                     .Select(feed => Tuple.Create(feed,feed.PeekLine()))
                     //.Where(tup => 
                     //{
@@ -93,10 +93,14 @@ namespace Carvers.IBApi
                     //    return tup.Item2 != null && tup.Item2.Timestamp.UnixEpochToLocalTime();
 
                     //})
-                    
+                    .Where(tup => !tup.Item1.EndOfFeed)
                     .OrderBy(tup => tup.Item2.Timestamp)
-                    .First()
-                    .Item1.ReadNextLine();
+                    .FirstOrDefault();
+
+                    if (firstEntry == null)
+                        return;
+
+                    var toSend = firstEntry.Item1.ReadNextLine();
 
                     if (toSend.Timestamp.UnixEpochToLocalTime() > endTime)
                         return;

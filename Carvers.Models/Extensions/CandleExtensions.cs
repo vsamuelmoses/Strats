@@ -113,4 +113,18 @@ namespace Carvers.Models.Extensions
         public static bool ClosedBelowLow(this Candle candle1, Candle candle2)
             => candle1.Ohlc.Close < candle2.Ohlc.Low;
     }
+
+
+    public static class CandleStickPatternsExtensions
+    {
+        public static bool IsInverterHammer(this Candle candle)
+        {
+            var totalLength = candle.High - candle.Low;
+            var fifthPart = totalLength / 5;
+            var lastPart = candle.Low + fifthPart;
+
+            return candle.Open < lastPart && candle.Close < lastPart;
+        }
+
+    }
 }

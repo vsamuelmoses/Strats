@@ -28,14 +28,13 @@ namespace Carvers.Models.DataReaders
                     if (candle.TimeStamp < (lastCandle.TimeStamp + span))
                     {
                         lastCandle = lastCandle.Add(candle);
-
                     }
 
                     if (candle.TimeStamp - lastCandle.TimeStamp == span)
                     {
                         lastCandle = lastCandle.Add(candle);
                         stream.OnNext(lastCandle);
-                        Debug.Assert(candle.TimeStamp.Minute == 0 && candle.TimeStamp.Second == 0);
+                        Debug.Assert(candle.TimeStamp.Minute % span.TotalMinutes == 0 && candle.TimeStamp.Second == 0);
                         lastCandle = candle;
                     }
                     else if (candle.TimeStamp - lastCandle.TimeStamp > span)

@@ -318,11 +318,4 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
     //    public static Func<FuncCondition<SMAContext>> Strategy = contextReadyCondition;
     //}
-
-    public static class Indicators
-    {
-        public const string CloseSma5 = "SMA 5";
-        public const string CloseSma14 = "SMA 14";
-        public const string CandleBodySma5 = "Body 5";
-    }
 }

@@ -80,6 +80,7 @@
     <Compile Include="Indicators\Condition.cs" />
     <Compile Include="Indicators\IIndicator.cs" />
     <Compile Include="Indicators\IndicatorBase.cs" />
+    <Compile Include="Indicators\Indicators.cs" />
     <Compile Include="Indicators\MovingAverage.cs" />
     <Compile Include="Indicators\StochasticIndicator.cs" />
     <Compile Include="Indicators\SupportResistance.cs" />

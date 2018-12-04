@@ -13,13 +13,24 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public SMAContext(Strategy strategy,
             IEnumerable<IIndicator> indicators,
             Candle candle)
+            : this(strategy, indicators, candle, Enumerable.Empty<IContextInfo>())
+        {
+        }
+
+        public SMAContext(Strategy strategy,
+            IEnumerable<IIndicator> indicators,
+            Candle candle,
+            IEnumerable<IContextInfo> infos)
         {
             Strategy = strategy;
             Indicators = indicators.ToDictionary(ma => ma.Description, ma => ma);
             LastCandle = candle;
+            Infos = infos;
         }
 
         public Candle LastCandle { get; private set; }
+        public IEnumerable<IContextInfo> Infos { get; }
+
         public bool IsReady()
             => Indicators.All(i => i.Value.HasValidValue);
         public Strategy Strategy { get; }

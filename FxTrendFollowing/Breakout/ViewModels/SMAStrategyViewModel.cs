@@ -15,6 +15,7 @@ using Carvers.Models;
 using Carvers.Models.DataReaders;
 using Carvers.Models.Events;
 using Carvers.Models.Indicators;
+using FxTrendFollowing.Strategies;
 using IBApi;
 
 namespace FxTrendFollowing.Breakout.ViewModels
@@ -43,32 +44,36 @@ namespace FxTrendFollowing.Breakout.ViewModels
             
             Strategy = new Strategy("Simple Breakout");
 
-            var nextCondition = SMACrossOverStrategy.Strategy;
+            var nextCondition = MovingAveragesPerfectOrder.Strategy;
 
             var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
             var candleFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
 
-            var maStreaming = new MovingAverageStreamingService(Indicators.CloseSma5, candleFeed, candle => candle.Close, 5);
-            var ma14Streaming = new MovingAverageStreamingService(Indicators.CloseSma14, candleFeed, candle => candle.Close, 14);
-            var candleBodyLengthMaStreaming = new MovingAverageStreamingService(Indicators.CandleBodySma5, candleFeed, candle => Math.Abs(candle.Close - candle.Open), 5);
+            var ma10Day = new MovingAverageStreamingService(Indicators.SMA10, candleFeed, candle => candle.Close, 10);
+            var ma20Day = new MovingAverageStreamingService(Indicators.SMA20, candleFeed, candle => candle.Close, 20);
+            var ma50Day = new MovingAverageStreamingService(Indicators.SMA50, candleFeed, candle => candle.Close, 50);
+            var ma100Day = new MovingAverageStreamingService(Indicators.SMA100, candleFeed, candle => candle.Close, 100);
+            var ma200Day = new MovingAverageStreamingService(Indicators.SMA200, candleFeed, candle => candle.Close, 200);
 
-            var context = new SMAContext(Strategy, new List<MovingAverage>
+
+            var haFeed = new HeikinAshiCandleFeed(candleFeed);
+
+            var context = new SMAContext(Strategy, new List<IIndicator>
             {
-                maStreaming.MovingAverage,
-                candleBodyLengthMaStreaming.MovingAverage
+                ma10Day.MovingAverage, ma20Day.MovingAverage, ma50Day.MovingAverage, ma100Day.MovingAverage, ma200Day.MovingAverage,
+                haFeed.HACandle
             }, Candle.Null);
 
             //TODO: for manual feed, change the candle span
             candleFeed.Zip(
-                    maStreaming.Stream, 
-                    ma14Streaming.Stream, 
-                    candleBodyLengthMaStreaming.Stream, 
+                    ma10Day.Stream, ma20Day.Stream, ma50Day.Stream, ma100Day.Stream, ma200Day.Stream,
+                    haFeed.Stream,
                     Tuple.Create)
                 .Subscribe(tup =>
                 {
                     var candle = tup.Item1;
                     Status = $"Executing {candle.TimeStamp}";
-                    var newcontext = new SMAContext(context.Strategy, new List<MovingAverage> { tup.Item2, tup.Item3, tup.Item4}, candle);
+                    var newcontext = new SMAContext(context.Strategy, new List<IIndicator> { tup.Item2, tup.Item3, tup.Item4, tup.Item5, tup.Item6, tup.Item7 }, candle);
                     (nextCondition, context) = nextCondition().Evaluate(newcontext, candle);
                     _contextStream.OnNext(context);
                 });
@@ -94,7 +99,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     .Select(order => (IEvent) new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
 
             var priceChart = candleFeed.Zip(_contextStream,
-                (candle, ctx) => (candle,
+                (candle, ctx) => ((Candle)ctx.Indicators[Indicators.HeikinAshi].OfType<HeikinAshiCandle>(),
                     ctx.Indicators
                         .Where(i => i.Key != Indicators.CandleBodySma5)
                         .Select(i => i.Value)
