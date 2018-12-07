@@ -12,6 +12,16 @@ namespace Carvers.Models.Indicators
         bool HasValidValue { get; }
     }
 
+    public class CustomIndicator : IIndicator
+    {
+        public CustomIndicator(string description)
+        {
+            Description = description;
+        }
+        public string Description { get; }
+        public bool HasValidValue => true;
+    }
+
     public static class IndicatorExtensions
     {
         public static T OfType<T>(this IIndicator indicator)

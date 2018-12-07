@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Carvers.Charting.MultiPane;
@@ -13,7 +11,6 @@ using Carvers.Charting.ViewModels;
 using Carvers.IB.App;
 using Carvers.IBApi;
 using Carvers.IBApi.Extensions;
-using Carvers.Infra.Extensions;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
@@ -36,13 +33,13 @@ namespace FxTrendFollowing.Strategies
         {
 
             Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
-            //new DateTimeOffset(2017, 07, 30, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2017, 12, 31, 0, 0, 0, TimeSpan.Zero));
             //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
-            var interestedPairs = new[] { CurrencyPair.EURUSD };
+            var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             _contextStream = new Subject<CandleStickPatternContext>();
 
@@ -51,27 +48,24 @@ namespace FxTrendFollowing.Strategies
             var nextCondition = CandleStickPatternTrade.Strategy;
 
             var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
-            var candleFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
+            var hourlyFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
+            var dailyfeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromDays(1)).Stream;
+            var haCandleFeed = new HeikinAshiCandleFeed(dailyfeed);
 
-            var haCandleFeed = new HeikinAshiCandleFeed(candleFeed);
-            var ma1Day = new MovingAverageStreamingService(Indicators.SMA20, candleFeed, candle => candle.High, 1);
-            var maLDay = new MovingAverageStreamingService(Indicators.SMA10, candleFeed, candle => candle.Low, 1);
-
-
-            var context = new CandleStickPatternContext(Strategy, new List<IIndicator> { ma1Day.MovingAverage, maLDay.MovingAverage },
+            var candleFeed = hourlyFeed;
+            var context = new CandleStickPatternContext(Strategy, new List<IIndicator> { haCandleFeed.HACandle },
                 new Lookback(1, new ConcurrentQueue<Candle>()),
                 Enumerable.Empty<IContextInfo>());
 
             //TODO: for manual feed, change the candle span
-            candleFeed.Zip(ma1Day.Stream, maLDay.Stream, Tuple.Create)
+            candleFeed
+                .WithLatestFrom(haCandleFeed.Stream, Tuple.Create)
                 .Subscribe(tup =>
                 {
                     var candle = tup.Item1;
-                    var ma = tup.Item2;
-                    var maL = tup.Item3;
                     Status = $"Executing {candle.TimeStamp}";
                     var newcontext = new CandleStickPatternContext(context.Strategy,
-                        new List<IIndicator>() {ma, maL}, context.LookbackCandles.Add(candle), context.ContextInfos);
+                        new List<IIndicator>() { tup.Item2 }, context.LookbackCandles.Add(candle), context.ContextInfos);
                     (nextCondition, context) = nextCondition().Evaluate(newcontext, candle);
                     _contextStream.OnNext(context);
                 });
@@ -96,14 +90,15 @@ namespace FxTrendFollowing.Strategies
                 .Merge(Strategy.CloseddOrders
                     .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
 
-            var priceChart = candleFeed.Zip(_contextStream, haCandleFeed.Stream,
-                (candle, ctx, haCandle) => ((Candle)candle,
-                    ctx.Indicators
+            var priceChart = candleFeed.Zip(_contextStream, 
+                (candle, tup) => ((Candle)candle,
+                    tup.Indicators
                         .Where(i => i.Key != Indicators.CandleBodySma5)
                         .Select(i => i.Value)
                         .OfType<MovingAverage>()
                         .Select(i => ((IIndicator)i, i.Value))
-                        .Append((haCandle, haCandle.High))));
+                        .Append((tup.Indicators[Indicators.HeikinAshi], ((Candle)tup.Indicators[Indicators.HeikinAshi]).High))
+                        .Append((new CustomIndicator("HA Low"), ((Candle)tup.Indicators[Indicators.HeikinAshi]).Low))));
 
             TraderChart = new CreateMultiPaneStockChartsViewModel(priceChart,
                  new List<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>>() { }, eventsFeed);
@@ -159,30 +154,61 @@ namespace FxTrendFollowing.Strategies
 
         private static Func<FuncCondition<CandleStickPatternContext>> contextReadyCondition = () =>
             new FuncCondition<CandleStickPatternContext>(
-                onSuccess: isInvertedHammer,
+                onSuccess: didPriceHitSR,
                 onFailure: contextReadyCondition,
                 predicate: context => context.IsReady());
 
-        private static Func<FuncCondition<CandleStickPatternContext>> isInvertedHammer = () =>
+        private static Func<FuncCondition<CandleStickPatternContext>> didPriceHitSR = () =>
             new FuncCondition<CandleStickPatternContext>(
                 onSuccess: exitCondition,
-                onFailure: isInvertedHammer,
+                onFailure: didPriceHitSR,
                 predicates: new List<Func<CandleStickPatternContext, bool>>()
                 {
                     {
-                        ctx => ctx.LookbackCandles.LastCandle.IsInverterHammer()
+                        ctx => ctx.LookbackCandles.LastCandle.High >= ((Candle)ctx.Indicators[Indicators.HeikinAshi]).High
+                               && ctx.LookbackCandles.LastCandle.Low < ((Candle)ctx.Indicators[Indicators.HeikinAshi]).High
+                               && CandleSentiment.Of((Candle)ctx.Indicators[Indicators.HeikinAshi]) == CandleSentiment.Green
                     }
                 },
-                onSuccessAction: ctx => ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell));
+                onSuccessAction: ctx => ctx
+                    .PlaceOrder(ctx.LastCandle.TimeStamp, (HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi], Side.Buy)
+                    .AddContextInfo(new TPSLInfo(((HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi]).CandleLength(), ((HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi]).CandleLength())));
+
+
+        //private static Func<FuncCondition<CandleStickPatternContext>> isInvertedHammer = () =>
+        //    new FuncCondition<CandleStickPatternContext>(
+        //        onSuccess: exitCondition,
+        //        onFailure: isInvertedHammer,
+        //        predicates: new List<Func<CandleStickPatternContext, bool>>()
+        //        {
+        //            {
+        //                ctx => ctx.LookbackCandles.LastCandle.IsInverterHammer()
+        //            }
+        //        },
+        //        onSuccessAction: ctx => ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell));
 
         private static Func<FuncCondition<CandleStickPatternContext>> exitCondition = () =>
             new FuncCondition<CandleStickPatternContext>(
-                onSuccess: isInvertedHammer,
+                onSuccess: didPriceHitSR,
                 onFailure: exitCondition,
                 predicates: new List<Func<CandleStickPatternContext, bool>>()
                 {
                     {
-                        ctx => true
+                        ctx =>
+                        {
+                            if (ctx.Strategy.OpenOrder is BuyOrder)
+                            {
+                                var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle, 1);
+
+                                var tpslInfo = ctx.ContextInfos.OfType<TPSLInfo>().Single();
+                                if(pl >= tpslInfo.Tp || pl <= -1 * tpslInfo.Sl)
+                                    return true;
+
+                                return false;
+                            }
+
+                            throw new Exception("unknown");
+                        }
                     }
                 },
                 onSuccessAction: ctx =>
@@ -266,9 +292,45 @@ namespace FxTrendFollowing.Strategies
             throw new Exception("unexpected error");
         }
 
+        public static CandleStickPatternContext PlaceOrder(this CandleStickPatternContext context, DateTimeOffset timeStamp, HeikinAshiCandle shadowCandle,
+            Side side)
+        {
+            if (side == Side.ShortSell)
+            {
+                var shortSellOrder = new ShortSellOrder(
+                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, shadowCandle.Ohlc.High,
+                        100000));
+                context.Strategy.Open(shortSellOrder);
+                return new CandleStickPatternContext(context.Strategy, context.Indicators.Values,
+                    context.LookbackCandles, context.ContextInfos);
+            }
+
+            if (side == Side.Buy)
+            {
+                context.Strategy.Open(new BuyOrder(
+                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, shadowCandle.Ohlc.High,
+                        100000)));
+                return new CandleStickPatternContext(context.Strategy, context.Indicators.Values,
+                    context.LookbackCandles, context.ContextInfos);
+            }
+
+            throw new Exception("unexpected error");
+        }
+
         public static CandleStickPatternContext AddContextInfo(this CandleStickPatternContext context, IContextInfo info)
             => new CandleStickPatternContext(context.Strategy, context.Indicators.Values, context.LookbackCandles,
                 new List<IContextInfo> { info });
+    }
 
+    public class TPSLInfo : IContextInfo
+    {
+        public double Tp { get; }
+        public double Sl { get; }
+
+        public TPSLInfo(double tp, double sl)
+        {
+            Tp = tp;
+            Sl = sl;
+        }
     }
 }
