@@ -69,20 +69,20 @@ namespace Carvers.IB.App
 
         private void PlaceOrder()
         {
-            var contract = ContractCreator.GetCurrencyPairContract(CurrencyPair.EURJPY);
+            var contract = ContractCreator.GetContract(CurrencyPair.EURJPY);
             var order = OrderCreator.GetOrder(ibtws.NextOrderId, "BUY", "100000", "MKT", "", "DAY");
             ibtws.PlaceOrder(contract, order);
         }
 
-        private void SendRealTimeDataRequest(CurrencyPair pair)
+        private void SendRealTimeDataRequest(Symbol pair)
         {
-            var contract = ContractCreator.GetCurrencyPairContract(pair);
+            var contract = ContractCreator.GetContract(pair);
             ibtws.AddRealtimeDataRequest(pair.UniqueId, contract, "MIDPOINT", false);
         }
 
         private void SendHistoricalDataRequest()
         {
-            var contract = ContractCreator.GetCurrencyPairContract(CurrencyPair.EURJPY);
+            var contract = ContractCreator.GetContract(CurrencyPair.EURJPY);
             var endTime = DateTime.Now.ToString("yyyyMMdd HH:mm:ss");
             var duration = "10 D";
             var barSize = "1 hour";

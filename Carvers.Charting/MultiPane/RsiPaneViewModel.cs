@@ -20,6 +20,7 @@ using System.Linq;
 using Carvers.Models.Indicators;
 using SciChart.Charting.Model.ChartSeries;
 using SciChart.Charting.Model.DataSeries;
+using SciChart.Charting.Visuals.RenderableSeries;
 using Unity.Interception.Utilities;
 
 namespace Carvers.Charting.MultiPane
@@ -35,11 +36,14 @@ namespace Carvers.Charting.MultiPane
             _series = indicatorFeed
                 .ToDictionary(i => i.Key, i => new XyDataSeries<DateTime, double> {SeriesName = i.Key.Description});
             _series
-                .ForEach(s => ChartSeriesViewModels.Add(new LineRenderableSeriesViewModel {DataSeries = s.Value}));
+                .ForEach(s => ChartSeriesViewModels.Add(new LineRenderableSeriesViewModel {DataSeries = s.Value, DrawNaNAs = LineDrawMode.ClosedLines}));
 
             indicatorFeed
                 .Select(i => i.Value)
-                .ForEach(feed => feed.Subscribe((t) => _series[t.Item1].Append(t.Item2, t.Item3)));
+                .ForEach(feed => feed.Subscribe((t) =>
+                {
+                    _series[t.Item1].Append(t.Item2, t.Item3);
+                }));
 
             YAxisTextFormatting = "0.0";
 

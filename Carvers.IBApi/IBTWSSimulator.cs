@@ -28,17 +28,17 @@ namespace Carvers.IBApi
 
         private readonly DateTimeOffset startTime;
         private readonly DateTimeOffset endTime;
-        private readonly Func<CurrencyPair, DateTimeOffset, string> filePathGetter;
+        private readonly Func<Symbol, DateTimeOffset, string> filePathGetter;
 
 
         public bool IsConnected { get; private set; }
         public int NextOrderId { get; }
 
-        public IBTWSSimulator(Func<CurrencyPair, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime)
+        public IBTWSSimulator(Func<Symbol, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime)
             : this(filePathGetter, startTime, DateTimeOffset.MaxValue)
         { }
 
-        public IBTWSSimulator(Func<CurrencyPair, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime,
+        public IBTWSSimulator(Func<Symbol, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime,
             DateTimeOffset endTime)
         {
             this.filePathGetter = filePathGetter;
@@ -71,7 +71,7 @@ namespace Carvers.IBApi
             Task.Factory.StartNew(() =>
             {
                 var fileFeeds = requests
-                    .Select(req => CurrencyPair.Get(Currency.Get(req.Item2.Symbol), Currency.Get(req.Item2.Currency)))
+                    .Select(req => req.Item2.ToSymbol())
                     .Select(pair => new FileFeed<RealTimeBarMessage>(filePathGetter(pair, startTime), 
                                         line => IbApiUtility.ToRealTimeBarMessage(line.AsCsv(), pair.UniqueId)))
                     .ToList();

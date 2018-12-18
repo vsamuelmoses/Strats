@@ -32,14 +32,14 @@ namespace FxTrendFollowing.Strategies
         public CandleStickPatternStrategy()
         {
 
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 12, 31, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2017, 12, 10, 0, 0, 0, TimeSpan.Zero));
             //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
-            var interestedPairs = new[] { CurrencyPair.GBPUSD };
+            var interestedSymbols = new[] { Index.DAX};
 
             _contextStream = new Subject<CandleStickPatternContext>();
 
@@ -54,7 +54,7 @@ namespace FxTrendFollowing.Strategies
 
             var candleFeed = hourlyFeed;
             var context = new CandleStickPatternContext(Strategy, new List<IIndicator> { haCandleFeed.HACandle },
-                new Lookback(1, new ConcurrentQueue<Candle>()),
+                new Lookback(60, new ConcurrentQueue<Candle>()),
                 Enumerable.Empty<IContextInfo>());
 
             //TODO: for manual feed, change the candle span
@@ -72,8 +72,8 @@ namespace FxTrendFollowing.Strategies
 
             StartCommand = new RelayCommand(_ =>
             {
-                Ibtws.AddRealtimeDataRequests(interestedPairs
-                    .Select(pair => Tuple.Create<int, Contract>(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
+                Ibtws.AddRealtimeDataRequests(interestedSymbols
+                    .Select(symbol => Tuple.Create<int, Contract>(symbol.UniqueId, symbol.GetContract()))
                     .ToList());
             });
 
@@ -98,10 +98,29 @@ namespace FxTrendFollowing.Strategies
                         .OfType<MovingAverage>()
                         .Select(i => ((IIndicator)i, i.Value))
                         .Append((tup.Indicators[Indicators.HeikinAshi], ((Candle)tup.Indicators[Indicators.HeikinAshi]).High))
-                        .Append((new CustomIndicator("HA Low"), ((Candle)tup.Indicators[Indicators.HeikinAshi]).Low))));
+                        .Append((CustomIndicator.Get("HA Low"), ((Candle)tup.Indicators[Indicators.HeikinAshi]).Low))));
 
+            var equityCurveFeed =
+                Strategy.CloseddOrders
+                    .Select(o => 
+                        (CustomIndicator.Get(CustomIndicators.EquityCurveIndicator), o.OrderInfo.TimeStamp.DateTime, Strategy.ProfitLoss.Value));
+            
             TraderChart = new CreateMultiPaneStockChartsViewModel(priceChart,
-                 new List<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>>() { }, eventsFeed);
+                 new List<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>>()
+                 {
+                     new Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>()
+                     {
+                         {
+                             CustomIndicator.Get(CustomIndicators.EquityCurveIndicator),
+                             candleFeed.Select(c =>
+                             {
+                                 //if(Strategy.ProfitLoss?.Value == 0)
+                                 return (CustomIndicator.Get(CustomIndicators.EquityCurveIndicator),
+                                         c.TimeStamp.DateTime, (Strategy.ProfitLoss?.Value).GetValueOrDefault());
+                             })
+                         }
+                     }
+                 }, eventsFeed);
         }
 
         public CreateMultiPaneStockChartsViewModel TraderChart
@@ -150,61 +169,150 @@ namespace FxTrendFollowing.Strategies
 
     public static class CandleStickPatternTrade
     {
+        private static Candle previousPreviousShadow;
+        private static Candle previousShadow;
+        private static Candle currentShadow;
         private static int candlesAfterPerfectOrder = 0;
 
         private static Func<FuncCondition<CandleStickPatternContext>> contextReadyCondition = () =>
             new FuncCondition<CandleStickPatternContext>(
                 onSuccess: didPriceHitSR,
                 onFailure: contextReadyCondition,
-                predicate: context => context.IsReady());
+                predicate: context => context.IsReady().ToPredicateResult());
 
         private static Func<FuncCondition<CandleStickPatternContext>> didPriceHitSR = () =>
             new FuncCondition<CandleStickPatternContext>(
                 onSuccess: exitCondition,
                 onFailure: didPriceHitSR,
-                predicates: new List<Func<CandleStickPatternContext, bool>>()
+                predicates: new List<Func<CandleStickPatternContext, PredicateResult>>()
                 {
                     {
-                        ctx => ctx.LookbackCandles.LastCandle.High >= ((Candle)ctx.Indicators[Indicators.HeikinAshi]).High
-                               && ctx.LookbackCandles.LastCandle.Low < ((Candle)ctx.Indicators[Indicators.HeikinAshi]).High
-                               && CandleSentiment.Of((Candle)ctx.Indicators[Indicators.HeikinAshi]) == CandleSentiment.Green
+                        ctx => 
+                        {
+                            var shadowCandle = ((Candle) ctx.Indicators[Indicators.HeikinAshi]);
+
+                            if (currentShadow == null || currentShadow != shadowCandle)
+                            {
+                                previousPreviousShadow = previousShadow;
+                                previousShadow = currentShadow;
+                                currentShadow = shadowCandle;
+                            }
+
+                            var alreadyTradedThisHour =
+                                ctx.Strategy.RecentClosedOrder?.OrderInfo.TimeStamp.DateTime.DayOfYear ==
+                                ctx.LastCandle.TimeStamp.DateTime.DayOfYear;
+
+                            if(alreadyTradedThisHour)
+                                return PredicateResult.Fail;
+
+
+                            var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.Low)
+                                        //&& ctx.LookbackCandles.Candles.Last()
+                                        //    .ClosedBelowLow(ctx.LookbackCandles.Candles.First())
+                                        //&& previousShadow?.Low < shadowCandle.Low;
+                                        && previousPreviousShadow?.Low < previousShadow?.Low
+                                        && previousPreviousShadow?.Low < shadowCandle.Low;
+                            //var isBuy = 
+                            //    ctx.LookbackCandles.LastCandle.Close > shadowCandle.Low
+                            //            && ctx.LookbackCandles.LastCandle.Low < shadowCandle.Low
+                            //            && ctx.LookbackCandles.LastCandle.Open > shadowCandle.Low
+                            //            //&& ctx.LookbackCandles.Candles.ToDailyCandles().Last().High < shadowCandle.High
+                            //            && shadowCandle.IsGreen();
+
+                            //var isSell = ctx.LookbackCandles.LastCandle.Close < shadowCandle.High
+                            //             && ctx.LookbackCandles.LastCandle.Open > shadowCandle.High;
+
+                            var isSell = false;
+
+                            return (isBuy || isSell).ToPredicateResult();
+
+                        }
                     }
                 },
-                onSuccessAction: ctx => ctx
-                    .PlaceOrder(ctx.LastCandle.TimeStamp, (HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi], Side.Buy)
-                    .AddContextInfo(new TPSLInfo(((HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi]).CandleLength(), ((HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi]).CandleLength())));
+                onSuccessAction: ctx =>
+                {
+                    var shadowCandle = ((Candle)ctx.Indicators[Indicators.HeikinAshi]);
 
 
-        //private static Func<FuncCondition<CandleStickPatternContext>> isInvertedHammer = () =>
-        //    new FuncCondition<CandleStickPatternContext>(
-        //        onSuccess: exitCondition,
-        //        onFailure: isInvertedHammer,
-        //        predicates: new List<Func<CandleStickPatternContext, bool>>()
-        //        {
-        //            {
-        //                ctx => ctx.LookbackCandles.LastCandle.IsInverterHammer()
-        //            }
-        //        },
-        //        onSuccessAction: ctx => ctx.PlaceOrder(ctx.LastCandle, Side.ShortSell));
+
+                    var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.Low)
+                                //&& ctx.LookbackCandles.Candles.Last()
+                                //    .ClosedBelowLow(ctx.LookbackCandles.Candles.First())
+                                //&& previousShadow?.Low < shadowCandle.Low;
+                                && previousPreviousShadow?.Low < previousShadow?.Low
+                                && previousPreviousShadow?.Low < shadowCandle.Low;
+
+                    //ctx.LookbackCandles.LastCandle.Close > shadowCandle.Low
+                    //&& ctx.LookbackCandles.LastCandle.Low < shadowCandle.Low
+                    //&& ctx.LookbackCandles.LastCandle.Open > shadowCandle.Low
+                    ////&& ctx.LookbackCandles.Candles.ToDailyCandles().Last().High < shadowCandle.High
+                    //&& shadowCandle.IsGreen();
+
+                    //var isSell = ctx.LookbackCandles.LastCandle.Close < shadowCandle.High
+                    //             && ctx.LookbackCandles.LastCandle.Open > shadowCandle.High;
+
+                    var isSell = false;
+
+
+                    var side = isBuy ? Side.Buy : Side.ShortSell;
+
+                    return ctx
+                        //.PlaceOrder(ctx.LastCandle.TimeStamp, (HeikinAshiCandle)ctx.Indicators[Indicators.HeikinAshi], Side.Buy)
+                        .PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.Low, side)
+                        .AddContextInfo(new TPSLInfo(
+                            shadowCandle.CandleLength() * 0.75,
+                            //shadowCandle.CandleLength()/2,
+                            shadowCandle.Low -  previousShadow.Low,
+                            //0.00100, 0.00100,
+                            shadowCandle));
+                });
+
+        public static int exitCandleCount = 0;
 
         private static Func<FuncCondition<CandleStickPatternContext>> exitCondition = () =>
             new FuncCondition<CandleStickPatternContext>(
                 onSuccess: didPriceHitSR,
                 onFailure: exitCondition,
-                predicates: new List<Func<CandleStickPatternContext, bool>>()
+                predicates: new List<Func<CandleStickPatternContext, PredicateResult>>()
                 {
                     {
                         ctx =>
                         {
-                            if (ctx.Strategy.OpenOrder is BuyOrder)
+                            //exitCandleCount++;
+
+                            //if (exitCandleCount < 5)
+                            //    return false;
+
+                            var currentShadow = ((Candle) ctx.Indicators[Indicators.HeikinAshi]);
+                            var openTimeShadow = ctx.ContextInfos.OfType<TPSLInfo>().Single().ShadowCandle;
+
+                            if (openTimeShadow != currentShadow)
+                                return PredicateResult.Success;
+
+
+
+
+                            //if (ctx.LastCandle.ClosedAboveHigh(openTimeShadow)
+                            //|| ctx.LastCandle.ClosedAboveHigh(currentShadow))
+                            //    return true;
+
+                            //if (ctx.LastCandle.Close > currentShadow.High || ctx.LastCandle.Close < currentShadow.Low)
+                            //    return PredicateResult.Success;
+                            
+
+                            //if (ctx.LastCandle.ClosedAboveHigh(((Candle) ctx.Indicators[Indicators.HeikinAshi]))
+                            //        || ctx.LastCandle.ClosedBelowLow(((Candle) ctx.Indicators[Indicators.HeikinAshi])))
+                            //    return true;
+
+                            //if (ctx.Strategy.OpenOrder is BuyOrder)
                             {
                                 var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle, 1);
 
                                 var tpslInfo = ctx.ContextInfos.OfType<TPSLInfo>().Single();
                                 if(pl >= tpslInfo.Tp || pl <= -1 * tpslInfo.Sl)
-                                    return true;
+                                    return PredicateResult.Success;
 
-                                return false;
+                                return PredicateResult.Fail;
                             }
 
                             throw new Exception("unknown");
@@ -213,9 +321,14 @@ namespace FxTrendFollowing.Strategies
                 },
                 onSuccessAction: ctx =>
                 {
+                    exitCandleCount = 0;
                     if (ctx.Strategy.OpenOrder is BuyOrder)
                     {
+                        var openTimeShadow = ctx.ContextInfos.OfType<TPSLInfo>().Single().ShadowCandle;
+
+
                         var candle = ctx.LastCandle;
+                        //var closePrice = ctx.LastCandle.ClosedAboveHigh(openTimeShadow) ? openTimeShadow.High : candle.Close;
                         ctx.Strategy.Close(
                             new SellOrder((BuyOrder)ctx.Strategy.OpenOrder,
                                 new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, ctx.Strategy, candle.Ohlc.Close,
@@ -292,13 +405,13 @@ namespace FxTrendFollowing.Strategies
             throw new Exception("unexpected error");
         }
 
-        public static CandleStickPatternContext PlaceOrder(this CandleStickPatternContext context, DateTimeOffset timeStamp, HeikinAshiCandle shadowCandle,
+        public static CandleStickPatternContext PlaceOrder(this CandleStickPatternContext context, DateTimeOffset timeStamp, Candle candle, double entryPrice,
             Side side)
         {
             if (side == Side.ShortSell)
             {
                 var shortSellOrder = new ShortSellOrder(
-                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, shadowCandle.Ohlc.High,
+                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, entryPrice.USD(),
                         100000));
                 context.Strategy.Open(shortSellOrder);
                 return new CandleStickPatternContext(context.Strategy, context.Indicators.Values,
@@ -308,7 +421,7 @@ namespace FxTrendFollowing.Strategies
             if (side == Side.Buy)
             {
                 context.Strategy.Open(new BuyOrder(
-                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, shadowCandle.Ohlc.High,
+                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, entryPrice.USD(),
                         100000)));
                 return new CandleStickPatternContext(context.Strategy, context.Indicators.Values,
                     context.LookbackCandles, context.ContextInfos);
@@ -326,11 +439,13 @@ namespace FxTrendFollowing.Strategies
     {
         public double Tp { get; }
         public double Sl { get; }
+        public Candle ShadowCandle { get; }
 
-        public TPSLInfo(double tp, double sl)
+        public TPSLInfo(double tp, double sl, Candle shadowCandle)
         {
             Tp = tp;
             Sl = sl;
+            ShadowCandle = shadowCandle;
         }
     }
 }

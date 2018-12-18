@@ -21,7 +21,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
     {
         public BreakoutViewModel()
         {
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
@@ -41,7 +41,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             StartCommand = new RelayCommand(_ =>
             {
                 Ibtws.AddRealtimeDataRequests(interestedPairs
-                    .Select(pair => Tuple.Create(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
+                    .Select(pair => Tuple.Create(pair.UniqueId, pair.GetContract()))
                     .ToList());
             });
         }
@@ -68,7 +68,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public BOVm()
         {
 
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
                 new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
@@ -94,7 +94,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             StartCommand = new RelayCommand(_ =>
             {
                 Ibtws.AddRealtimeDataRequests(interestedPairs
-                    .Select(pair => Tuple.Create(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
+                    .Select(pair => Tuple.Create(pair.UniqueId, pair.GetContract()))
                     .ToList());
             });
 

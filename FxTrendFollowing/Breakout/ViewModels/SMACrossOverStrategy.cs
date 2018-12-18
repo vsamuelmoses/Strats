@@ -13,13 +13,13 @@ namespace FxTrendFollowing.Breakout.ViewModels
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
                 onFailure: contextReadyCondition,
-                predicate: context => context.IsReady());
+                predicate: context => context.IsReady().ToPredicateResult());
 
         private static Func<FuncCondition<SMAContext>> entryCondition = () =>
             new FuncCondition<SMAContext>(
                 onSuccess: exitCondition,
                 onFailure: entryCondition,
-                predicates: new List<Func<SMAContext, bool>>()
+                predicates: new List<Func<SMAContext, PredicateResult>>()
                 {
                     {
                         ctx =>
@@ -89,10 +89,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
                                 || (ctx.LastCandle.High > ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value 
                                     && ctx.LastCandle.Close < ctx.Indicators[InterestedSMA].OfType<MovingAverage>().Value 
                                     &&  CandleSentiment.Of(ctx.LastCandle) == CandleSentiment.Green))
-                                return true;
+                                return PredicateResult.Success;
 
 
-                            return false;
+                            return PredicateResult.Success;
 
                         }
                     }
@@ -112,7 +112,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
                 onFailure: exitCondition,
-                predicates: new List<Func<SMAContext, bool>>()
+                predicates: new List<Func<SMAContext, PredicateResult>>()
                 {
                     {
                         /* When Moving averages cross */
@@ -131,7 +131,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                                 var pl = ctx.LastCandle.Close - openPrice;
 
                                 if (pl < -1* stopLossPips || pl > takeProfitPips)
-                                    return true;
+                                    return PredicateResult.Success;
                             }
 
                             if (ctx.Strategy.OpenOrder is ShortSellOrder)
@@ -139,10 +139,10 @@ namespace FxTrendFollowing.Breakout.ViewModels
                                 var pl = openPrice - ctx.LastCandle.Close;
 
                                 if (pl < -1* stopLossPips || pl > takeProfitPips)
-                                    return true;
+                                    return PredicateResult.Success;
                             }
 
-                            return false;
+                            return PredicateResult.Fail;
                         }
 
 

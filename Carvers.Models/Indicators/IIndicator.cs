@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Security.Cryptography;
@@ -14,12 +15,23 @@ namespace Carvers.Models.Indicators
 
     public class CustomIndicator : IIndicator
     {
-        public CustomIndicator(string description)
+        private CustomIndicator(string description)
         {
             Description = description;
         }
         public string Description { get; }
         public bool HasValidValue => true;
+
+        private static ConcurrentDictionary<string, CustomIndicator> _indicators = new ConcurrentDictionary<string, CustomIndicator>();
+
+        public static IIndicator Get(string description)
+            => _indicators.GetOrAdd(description, new CustomIndicator(description));
+
+    }
+
+    public static class CustomIndicators
+    {
+        public static string EquityCurveIndicator = nameof(EquityCurveIndicator);
     }
 
     public static class IndicatorExtensions
@@ -104,6 +116,8 @@ namespace Carvers.Models.Indicators
         {
         }
 
+        public bool IsGreen { get; set; }
+
         public string Description => Indicators.HeikinAshi;
         public bool HasValidValue => TimeStamp != DateTimeOffset.MinValue && TimeStamp != DateTimeOffset.MaxValue;
 
@@ -129,18 +143,25 @@ namespace Carvers.Models.Indicators
                 if (prevCandle == Candle.Null)
                     prevCandle = candle;
 
+
+                var isgreen = (candle.High > prevCandle.High && candle.Low > prevCandle.Low);
+
                 if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
                 {
-
+                    stream.OnNext(HACandle);
                 }
                 else
                 {
                     prevCandle = candle;
+
+                    HACandle = new HeikinAshiCandle(new Ohlc(prevCandle.Open, prevCandle.High, prevCandle.Low, prevCandle.Close, prevCandle.Ohlc.Volume),
+                        candle.TimeStamp, candle.Span);
+                    HACandle.IsGreen = isgreen;
+
+                    stream.OnNext(HACandle);
                 }
 
-                HACandle = new HeikinAshiCandle(new Ohlc(prevCandle.Open, prevCandle.High, prevCandle.Low, prevCandle.Close, prevCandle.Ohlc.Volume),
-                    candle.TimeStamp, candle.Span);
-                stream.OnNext(HACandle);
+                
             });
         }
 

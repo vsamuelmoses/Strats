@@ -99,7 +99,11 @@ namespace Carvers.Models.Indicators
             OpenOrder = null;
             closedOrders.Add(order);
             closeddOrders.OnNext(order);
+
+            RecentClosedOrder = order;
         }
+
+        public IClosedOrder RecentClosedOrder { get; private set; }
 
         private readonly Subject<IOrder> openOrders;
         public IObservable<IOrder> OpenOrders => openOrders;
@@ -338,7 +342,7 @@ namespace Carvers.Models.Indicators
     public class FuncContextReadyCondition : FuncCondition<StrategyContext>
     {
         public FuncContextReadyCondition(Func<FuncCondition<StrategyContext>> onSuccess, Func<FuncCondition<StrategyContext>> onFailure)
-            : base(onSuccess, onFailure, context => context.Lb.IsComplete())
+            : base(onSuccess, onFailure, context => context.Lb.IsComplete().ToPredicateResult())
         {
         }
     }
@@ -349,17 +353,19 @@ namespace Carvers.Models.Indicators
             Func<FuncCondition<StrategyContext>> onSuccess, 
             Func<FuncCondition<StrategyContext>> onFailure)
             : base(onSuccess, onFailure, 
-                  new List<Func<StrategyContext, bool>>
+                  new List<Func<StrategyContext, PredicateResult>>
                   {
-                    context => BooleanIndicators.TrendContinuation(context.Lb.Candles.TakeLast(2)),
+                    context => BooleanIndicators.TrendContinuation(context.Lb.Candles.TakeLast(2)).ToPredicateResult(),
                     context => {
                         if (CandleSentiment.Of(context.Lb.LastCandle) == CandleSentiment.Red)
-                            return CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Green;
+                            return (CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Green)
+                                .ToPredicateResult();
 
                         if (CandleSentiment.Of(context.Lb.LastCandle) == CandleSentiment.Green)
-                            return CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Red;
+                            return (CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Red)
+                                .ToPredicateResult();
 
-                        return false;
+                        return PredicateResult.Fail;
                     }
                   })
         {
@@ -374,21 +380,21 @@ namespace Carvers.Models.Indicators
             Func<FuncCondition<StrategyContext>> onFailure,
             Func<StrategyContext, StrategyContext> onSuccessAction)
             : base(onSuccess, onFailure,
-                  new List<Func<StrategyContext, bool>>
+                  new List<Func<StrategyContext, PredicateResult>>
                   {
                     context => {
                         var lbCandle = context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period));
 
                         if(lbCandle.AbsBodyLength() < lbMovement)
-                            return false;
+                            return PredicateResult.Fail;
 
                         if (BooleanIndicators.GetFractolIndicator(context.Lb, 5, fractolStrength) == Fractol.Bullish)
-                            return CandleSentiment.Of(lbCandle) == CandleSentiment.Green;
+                            return (CandleSentiment.Of(lbCandle) == CandleSentiment.Green).ToPredicateResult();
 
                         if (BooleanIndicators.GetFractolIndicator(context.Lb, 5, fractolStrength) == Fractol.Bearish)
-                            return CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Red;
+                            return (CandleSentiment.Of(context.Lb.Candles.ToSingleCandle(TimeSpan.FromMinutes(context.Lb.Period))) == CandleSentiment.Red).ToPredicateResult();
 
-                        return false;
+                        return PredicateResult.Fail;
                     }
                   }, onSuccessAction)
         {
@@ -402,26 +408,26 @@ namespace Carvers.Models.Indicators
             Func<FuncCondition<StrategyContext>> onSuccess, 
             Func<FuncCondition<StrategyContext>> onFailure)
             : base(onSuccess, onFailure,
-                  new List<Func<StrategyContext, bool>> {
+                  new List<Func<StrategyContext, PredicateResult>> {
 
-                      context => BooleanIndicators.TrendReversal(context.Lb.Candles.TakeLast(2).First(), context.Lb.Candles.TakeLast(2).Last()),
+                      context => BooleanIndicators.TrendReversal(context.Lb.Candles.TakeLast(2).First(), context.Lb.Candles.TakeLast(2).Last()).ToPredicateResult(),
                       context => {
 
                           if (CandleSentiment.Of(context.Lb.LastCandle) == CandleSentiment.Green)
-                              return !context.Lb.LastCandle.IsHigherThan(context.Lb.HighCandle);
+                              return (!context.Lb.LastCandle.IsHigherThan(context.Lb.HighCandle)).ToPredicateResult();
 
                           if (CandleSentiment.Of(context.Lb.LastCandle) == CandleSentiment.Red)
-                              return !context.Lb.LastCandle.IsLowerThan(context.Lb.LowCandle);
+                              return (!context.Lb.LastCandle.IsLowerThan(context.Lb.LowCandle)).ToPredicateResult();
 
                           throw new Exception("Unexpected - not expecting Doji. The first trendReversal predicate should have gotten rid of that");
                       },
                       context => {
 
                           if (CandleSentiment.Of(context.Lb.LastCandle) == CandleSentiment.Green)
-                              return (context.Lb.HighCandle.Ohlc.High.Value - context.Lb.LastCandle.Ohlc.Close.Value) * 100000 > 100;
+                              return ((context.Lb.HighCandle.Ohlc.High.Value - context.Lb.LastCandle.Ohlc.Close.Value) * 100000 > 100).ToPredicateResult();
 
                           if (CandleSentiment.Of(context.Lb.LastCandle) == CandleSentiment.Red)
-                              return (context.Lb.LastCandle.Ohlc.Close.Value - context.Lb.LowCandle.Ohlc.Low.Value) * 100000 > 100;
+                              return ((context.Lb.LastCandle.Ohlc.Close.Value - context.Lb.LowCandle.Ohlc.Low.Value) * 100000 > 100).ToPredicateResult();
 
                           throw new Exception("Unexpected - not expecting Doji. The first trendReversal predicate should have gotten rid of that");
                       }
@@ -456,7 +462,7 @@ namespace Carvers.Models.Indicators
                               context.Strategy.Close(
                                   new SellOrder((BuyOrder)context.Strategy.OpenOrder, 
                                     new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, fractolContext.MiddleCandle.Ohlc.Low, 100000, candle)));
-                              return true;
+                              return PredicateResult.Success;
                           }
 
                           Price target = (entryContext.HCandle.Ohlc.High - entryContext.EntryCandle.Ohlc.Close) * (2d / 3);
@@ -465,10 +471,10 @@ namespace Carvers.Models.Indicators
                               context.Strategy.Close(
                                   new SellOrder((BuyOrder)context.Strategy.OpenOrder,
                                     new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, entryContext.EntryCandle.Ohlc.Close + target, 100000, candle)));
-                              return true;
+                              return PredicateResult.Success;
                           }
 
-                          return false;
+                          return PredicateResult.Fail;
                       }
 
                       if (context.Strategy.OpenOrder is ShortSellOrder)
@@ -486,7 +492,7 @@ namespace Carvers.Models.Indicators
                               context.Strategy.Close(
                                   new BuyToCoverOrder((ShortSellOrder)context.Strategy.OpenOrder,
                                     new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, fractolContext.MiddleCandle.Ohlc.High, 100000, candle)));
-                              return true;
+                              return PredicateResult.Success;
                           }
 
 
@@ -498,10 +504,10 @@ namespace Carvers.Models.Indicators
                               context.Strategy.Close(
                                   new BuyToCoverOrder((ShortSellOrder)context.Strategy.OpenOrder,
                                     new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, entryContext.EntryCandle.Ohlc.Close - target, 100000, candle)));
-                              return true;
+                              return PredicateResult.Success;
                           }
 
-                          return false;
+                          return PredicateResult.Fail;
                       }
 
                       throw new Exception("Unexpected error");
@@ -517,7 +523,7 @@ namespace Carvers.Models.Indicators
             Func<FuncCondition<StrategyContext>> onFailure)
             : base(onSuccess,
                   onFailure,
-                  predicate: context => context.CloseOrderOnTargetReached(context.Infos.OfType<EntryContextInfo>().Single(), target))
+                  predicate: context => context.CloseOrderOnTargetReached(context.Infos.OfType<EntryContextInfo>().Single(), target).ToPredicateResult())
         {
         }
     }
@@ -529,7 +535,7 @@ namespace Carvers.Models.Indicators
     {
         private readonly Func<T, T> onFailureAction;
         private readonly Func<T, T> onSuccessAction;
-        private readonly IEnumerable<Func<T, bool>> predicates;
+        private readonly IEnumerable<Func<T, PredicateResult>> predicates;
         private readonly Func<FuncCondition<T>> onFailure;
         private readonly Func<FuncCondition<T>> onSuccess;
 
@@ -537,15 +543,15 @@ namespace Carvers.Models.Indicators
         public FuncCondition(
             Func<FuncCondition<T>> onSuccess,
             Func<FuncCondition<T>> onFailure,
-            Func<T, bool> predicate)
-            : this(onSuccess, onFailure, new List<Func<T, bool>> { predicate }, null, null)
+            Func<T, PredicateResult> predicate)
+            : this(onSuccess, onFailure, new List<Func<T, PredicateResult>> { predicate }, null, null)
         {
         }
 
         public FuncCondition(
             Func<FuncCondition<T>> onSuccess,
             Func<FuncCondition<T>> onFailure,
-            List<Func<T, bool>> predicates)
+            List<Func<T, PredicateResult>> predicates)
             : this(onSuccess, onFailure, predicates, null, null)
         {
         }
@@ -553,7 +559,7 @@ namespace Carvers.Models.Indicators
         public FuncCondition(
             Func<FuncCondition<T>> onSuccess,
             Func<FuncCondition<T>> onFailure,
-            List<Func<T, bool>> predicates,
+            List<Func<T, PredicateResult>> predicates,
             Func<T, T> onSuccessAction = null, 
             Func<T, T> onFailureAction = null)
         {
@@ -572,13 +578,26 @@ namespace Carvers.Models.Indicators
 
         public Tuple<Func<FuncCondition<T>>, T> Evaluate(T context, Candle candle)
         {
-            if (predicates.All(predicate => predicate(context)))
+            if (predicates.All(predicate => predicate(context).Result))
                 return Tuple.Create(onSuccess, onSuccessAction(context));
             else
                 return Tuple.Create(onFailure, onFailureAction(context));
         }
 
         public bool IsSuccess { get; }
+    }
+
+    public class PredicateResult
+    {
+        public PredicateResult(bool result)
+        {
+            Result = result;
+        }
+        public bool Result { get; }
+
+
+        public static PredicateResult Success = new PredicateResult(true);
+        public static PredicateResult Fail = new PredicateResult(false);
     }
 
     public class Fractol
@@ -651,5 +670,11 @@ namespace Carvers.Models.Indicators
     {
         public static StrategyContext AddContextInfo(this StrategyContext context, IContextInfo info)
             => new StrategyContext(context.Strategy, context.Lb, context.Infos.Add(info));
+    }
+
+    public static class PredicateResultExtensions
+    {
+        public static PredicateResult ToPredicateResult(this bool val)
+            => new PredicateResult(val);
     }
 }

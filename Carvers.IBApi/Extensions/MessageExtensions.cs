@@ -28,7 +28,9 @@ namespace Carvers.IBApi.Extensions
         static string[] dateTimeFormats = new string[] {
             "dd/M/yyyy HH:mm:ss zzz",
             "dd/MM/yyyy HH:mm:ss zzz",
-            "yyyy.MM.dd" };
+            "yyyy.MM.dd",
+            "dd.MM.yyyy HH:mm:ss.fff GMT-0000"
+        };
 
         public static RealTimeBarMessage ToRealTimeBarMessage(string[] values, int tickerId)
         {
@@ -65,7 +67,7 @@ namespace Carvers.IBApi.Extensions
 
                 long volume;
                 if (!long.TryParse(values[index++], out volume))
-                    return null;
+                    volume = 0;
 
                 return new RealTimeBarMessage(IBTWS.RT_BARS_ID_BASE + tickerId, timestamp.ToUnixTimeSeconds(), open, high, low, close, volume, 0, 0);
             }

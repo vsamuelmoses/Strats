@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reactive.Subjects;
+using System.Threading;
 using Carvers.Models.Extensions;
 
 namespace Carvers.Models.DataReaders
@@ -33,12 +34,15 @@ namespace Carvers.Models.DataReaders
                     if (candle.TimeStamp - lastCandle.TimeStamp == span)
                     {
                         lastCandle = lastCandle.Add(candle);
+                        Thread.Sleep(20);
                         stream.OnNext(lastCandle);
                         Debug.Assert(candle.TimeStamp.Minute % span.TotalMinutes == 0 && candle.TimeStamp.Second == 0);
                         lastCandle = candle;
                     }
                     else if (candle.TimeStamp - lastCandle.TimeStamp > span)
                     {
+                        Thread.Sleep(20);
+
                         stream.OnNext(lastCandle);
                         if (candle.TimeStamp.Second == 0 && candle.TimeStamp.Minute == 0)
                             lastCandle = candle;

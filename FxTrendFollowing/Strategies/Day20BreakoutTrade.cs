@@ -17,7 +17,6 @@ using Carvers.Models;
 using Carvers.Models.DataReaders;
 using Carvers.Models.Events;
 using Carvers.Models.Indicators;
-using FxTrendFollowing.Breakout.ViewModels;
 using IBApi;
 
 namespace FxTrendFollowing.Strategies
@@ -33,7 +32,7 @@ namespace FxTrendFollowing.Strategies
         public Day20BreakoutTradeViewModel()
         {
 
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero));
             //new DateTimeOffset(2017, 07, 30, 0, 0, 0, TimeSpan.Zero));
             //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
@@ -69,7 +68,7 @@ namespace FxTrendFollowing.Strategies
             StartCommand = new RelayCommand(_ =>
             {
                 Ibtws.AddRealtimeDataRequests(interestedPairs
-                    .Select(pair => Tuple.Create<int, Contract>(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
+                    .Select(pair => Tuple.Create<int, Contract>(pair.UniqueId, ContractCreator.GetContract(pair)))
                     .ToList());
             });
 
@@ -150,13 +149,13 @@ namespace FxTrendFollowing.Strategies
             new FuncCondition<Day20BeakoutTradeContext>(
                 onSuccess: is20DayBreakout,
                 onFailure: contextReadyCondition,
-                predicate: context => context.IsReady());
+                predicate: context => context.IsReady().ToPredicateResult());
 
         private static Func<FuncCondition<Day20BeakoutTradeContext>> is20DayBreakout = () =>
             new FuncCondition<Day20BeakoutTradeContext>(
                 onSuccess: exitCondition,
                 onFailure: is20DayBreakout,
-                predicates: new List<Func<Day20BeakoutTradeContext, bool>>()
+                predicates: new List<Func<Day20BeakoutTradeContext, PredicateResult>>()
                 {
                     {
                         ctx =>
@@ -164,9 +163,9 @@ namespace FxTrendFollowing.Strategies
                             var breakoutCandle = ctx.LookbackCandles.Candles.Skip(19).First();
                             var pullbackCandles = ctx.LookbackCandles.Candles.Skip(20).Take(2);
 
-                            return ctx.LookbackCandles.Candles.Take(20).Maximum(c => c.High) == breakoutCandle
+                            return (ctx.LookbackCandles.Candles.Take(20).Maximum(c => c.High) == breakoutCandle
                                    && pullbackCandles.First().Low > pullbackCandles.Last().Close
-                                   && ctx.LastCandle.Close > breakoutCandle.High;
+                                   && ctx.LastCandle.Close > breakoutCandle.High).ToPredicateResult();
                         }
                     }
                 },
@@ -180,7 +179,7 @@ namespace FxTrendFollowing.Strategies
             new FuncCondition<Day20BeakoutTradeContext>(
                 onSuccess: is20DayBreakout,
                 onFailure: exitCondition,
-                predicates: new List<Func<Day20BeakoutTradeContext, bool>>()
+                predicates: new List<Func<Day20BeakoutTradeContext, PredicateResult>>()
                 {
                     {
                         /* When Moving averages cross */
@@ -192,7 +191,7 @@ namespace FxTrendFollowing.Strategies
 
                             var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle, 1);
 
-                            return (pl > takeProfit) || pl < -1 * stopLoss;
+                            return ((pl > takeProfit) || pl < -1 * stopLoss).ToPredicateResult();
                         }
                     }
                 },

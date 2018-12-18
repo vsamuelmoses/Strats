@@ -27,7 +27,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public SimpleBreakout()
         {
 
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
                 new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
                 new DateTimeOffset(2017, 08, 31, 0, 0, 0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
@@ -54,7 +54,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             StartCommand = new RelayCommand(_ =>
             {
                 Ibtws.AddRealtimeDataRequests(interestedPairs
-                    .Select(pair => Tuple.Create(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
+                    .Select(pair => Tuple.Create(pair.UniqueId, ContractCreator.GetContract(pair)))
                     .ToList());
             });
 
@@ -103,13 +103,13 @@ namespace FxTrendFollowing.Breakout.ViewModels
             new FuncCondition<StrategyContext>(
                 onSuccess: entryCondition,
                 onFailure: contextReadyCondition,
-                predicate: context => context.Lb.IsComplete());
+                predicate: context => context.Lb.IsComplete().ToPredicateResult());
 
         private static Func<FuncCondition<StrategyContext>> entryCondition = () =>
             new FuncCondition<StrategyContext>(
                 onSuccess: exitCondition,
                 onFailure: entryCondition,
-                predicates: new List<Func<StrategyContext, bool>>()
+                predicates: new List<Func<StrategyContext, PredicateResult>>()
                 {
                     {
                         ctx =>
@@ -144,7 +144,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                             var closedBelowLow = ctx.Lb.LastCandle.ClosedBelowLow(lCandle);
 
                             if (!closedAboveHigh && !closedBelowLow)
-                                return false;
+                                return PredicateResult.Fail;
 
                             var lbSingleCandle = ctx.Lb.Candles.TakeWhile(c => c != ctx.Lb.LastCandle).ToSingleCandle(TimeSpan.FromHours(4));
 
@@ -154,15 +154,15 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
                                 if(CandleSentiment.Of(lbSingleCandle)  == CandleSentiment.Green
                                     /*&& lbSingleCandle.AbsBodyLength() >= target*/)
-                                    return true;
+                                    return PredicateResult.Success;
 
                             }
 
                             if(closedBelowLow && lowIndex < ctx.Lb.Count / 3
                                 && CandleSentiment.Of(lbSingleCandle)  == CandleSentiment.Red)
-                                return true;
+                                return PredicateResult.Success;
 
-                            return false;
+                            return PredicateResult.Fail;
                         }
                     }
                 },
@@ -198,13 +198,13 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     if (context.Strategy.OpenOrder is BuyOrder)
                     {
                         var target = entryContext.EntryCandle.Close - entryContext.LCandle.Low;
-                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target);
+                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target).ToPredicateResult();
                     }
 
                     if (context.Strategy.OpenOrder is ShortSellOrder)
                     {
                         var target = entryContext.HCandle.High - entryContext.EntryCandle.Close;
-                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target);
+                        return context.CloseOrderOnTargetReached(context.Infos.OfType<SimpleBreakoutEntryContext>().Single(), target).ToPredicateResult();
                     }
 
                     throw new Exception("Unexpected error");

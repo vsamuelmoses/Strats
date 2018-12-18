@@ -75,6 +75,10 @@ namespace Carvers.Models.Extensions
             return new Candle(ohlc, candles.First().TimeStamp, span);
         }
 
+        public static bool PassedThroughPrice(this Candle candle, double value)
+        {
+            return candle.High > value && candle.Low < value;
+        }
 
         public static double PercentageDifferenceInDailyVolume(this IEnumerable<Candle> candles, DateTimeOffset dt)
         {

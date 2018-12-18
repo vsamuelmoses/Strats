@@ -31,7 +31,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
         public SMAStrategyViewModel()
         {
 
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter,
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
                 new DateTimeOffset(2017, 01, 15, 0, 0, 0, TimeSpan.Zero));
                 //new DateTimeOffset(2017, 07, 30, 0, 0, 0, TimeSpan.Zero));
                 //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
@@ -81,7 +81,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             StartCommand = new RelayCommand(_ =>
             {
                 Ibtws.AddRealtimeDataRequests(interestedPairs
-                    .Select(pair => Tuple.Create<int, Contract>(pair.UniqueId, ContractCreator.GetCurrencyPairContract(pair)))
+                    .Select(pair => Tuple.Create<int, Contract>(pair.UniqueId, pair.GetContract()))
                     .ToList());
             });
 

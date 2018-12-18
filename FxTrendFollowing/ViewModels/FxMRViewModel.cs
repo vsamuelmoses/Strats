@@ -71,7 +71,7 @@ namespace FxTrendFollowing.ViewModels
             AllCurrencyStrength.CurrencyStrengthStream.Subscribe(val => Execute(val));
 
             //Ibtws = new IBTWS();
-            Ibtws = new IBTWSSimulator(Utility.FxFilePathGetter, new DateTimeOffset(2017,01,01,0,0,0, TimeSpan.Zero));
+            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter, new DateTimeOffset(2017,01,01,0,0,0, TimeSpan.Zero));
             //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
@@ -88,7 +88,7 @@ namespace FxTrendFollowing.ViewModels
             {
                 Ibtws.AddRealtimeDataRequests(CurrencyPairDataVMs
                     .Select(pairVm =>
-                        Tuple.Create(pairVm.Pair.UniqueId, ContractCreator.GetCurrencyPairContract(pairVm.Pair)))
+                        Tuple.Create(pairVm.Pair.UniqueId, ContractCreator.GetContract(pairVm.Pair)))
                     .ToList());
             });
 
@@ -153,13 +153,13 @@ namespace FxTrendFollowing.ViewModels
                     if (openOrder is BuyOrder buyOrder)
                     {
                         closedOrder = buyOrder.Close(new OrderInfo(dateTimeOffset, data.Pair, this, currentCandle.Ohlc.Close), CsiFeedViewModel.GetExchangeRate);
-                        Ibtws.PlaceOrder(ContractCreator.GetCurrencyPairContract(data.Pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "SELL", "100000", "MKT", "", "DAY"));
+                        Ibtws.PlaceOrder(ContractCreator.GetContract(data.Pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "SELL", "100000", "MKT", "", "DAY"));
                     }
                     else
                     {
                         var shortSellOrder = openOrder as ShortSellOrder;
                         closedOrder = shortSellOrder.Close(new OrderInfo(dateTimeOffset, data.Pair, this, currentCandle.Ohlc.Close), CsiFeedViewModel.GetExchangeRate);
-                        Ibtws.PlaceOrder(ContractCreator.GetCurrencyPairContract(data.Pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "BUY", "100000", "MKT", "", "DAY"));
+                        Ibtws.PlaceOrder(ContractCreator.GetContract(data.Pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "BUY", "100000", "MKT", "", "DAY"));
                     }
 
                     target = null;
@@ -283,13 +283,13 @@ namespace FxTrendFollowing.ViewModels
                     var openPrice = data.Candles.SingleOrDefault(candle => candle.TimeStamp == dateTimeOffset).Ohlc.Open;
 
                     openOrder = new BuyOrder(new OrderInfo(dateTimeOffset, pair, this, openPrice, 100000));
-                    Ibtws.PlaceOrder(ContractCreator.GetCurrencyPairContract(pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "BUY", "100000", "MKT", "", "DAY"));
+                    Ibtws.PlaceOrder(ContractCreator.GetContract(pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "BUY", "100000", "MKT", "", "DAY"));
                 }
                 else
                 {
                     var openPrice = data.Candles.SingleOrDefault(candle => candle.TimeStamp == dateTimeOffset).Ohlc.Open;
                     openOrder = new ShortSellOrder(new OrderInfo(dateTimeOffset, pair, this, openPrice, 100000));
-                    Ibtws.PlaceOrder(ContractCreator.GetCurrencyPairContract(pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "SELL", "100000", "MKT", "", "DAY"));
+                    Ibtws.PlaceOrder(ContractCreator.GetContract(pair), OrderCreator.GetOrder(Ibtws.NextOrderId, "SELL", "100000", "MKT", "", "DAY"));
                 }
 
                 var pastCandle = data.Candles.

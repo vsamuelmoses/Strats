@@ -16,13 +16,13 @@ namespace FxTrendFollowing.Strategies
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
                 onFailure: contextReadyCondition,
-                predicate: context => context.IsReady());
+                predicate: context => context.IsReady().ToPredicateResult());
 
         private static Func<FuncCondition<SMAContext>> entryCondition = () =>
             new FuncCondition<SMAContext>(
                 onSuccess: exitCondition,
                 onFailure: entryCondition,
-                predicates: new List<Func<SMAContext, bool>>()
+                predicates: new List<Func<SMAContext, PredicateResult>>()
                 {
                     {
                         ctx =>
@@ -48,10 +48,10 @@ namespace FxTrendFollowing.Strategies
                             if (isPerfectOrder && candlesAfterPerfectOrder == 5)
                             {
                                 candlesAfterPerfectOrder = 0;
-                                return true;
+                                return PredicateResult.Success;
                             }
 
-                            return false;
+                            return PredicateResult.Fail;
                         }
                     }
                 },
@@ -72,7 +72,7 @@ namespace FxTrendFollowing.Strategies
             new FuncCondition<SMAContext>(
                 onSuccess: entryCondition,
                 onFailure: exitCondition,
-                predicates: new List<Func<SMAContext, bool>>()
+                predicates: new List<Func<SMAContext, PredicateResult>>()
                 {
                     {
                         /* When Moving averages cross */
@@ -87,8 +87,8 @@ namespace FxTrendFollowing.Strategies
                                 ctx.Indicators[Indicators.SMA200].OfType<MovingAverage>().Value,
                             };
 
-                            return !smas.OrderByDescending(v => v).SequenceEqual(smas) &&
-                                   !smas.OrderBy(v => v).SequenceEqual(smas);
+                            return (!smas.OrderByDescending(v => v).SequenceEqual(smas) &&
+                                   !smas.OrderBy(v => v).SequenceEqual(smas)).ToPredicateResult();
                         }
                     }
                 },

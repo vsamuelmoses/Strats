@@ -12,6 +12,12 @@ namespace Carvers.Models
             Val = val;
         }
 
+        public Symbol(string val, int id)
+        {
+            Val = val;
+            UniqueId = id;
+        }
+
         public string Val { get; }
 
         public override string ToString()
@@ -37,7 +43,25 @@ namespace Carvers.Models
         {
             return Val?.GetHashCode() ?? 0;
         }
+
+        public int UniqueId { get; }
     }
+
+
+    public class Index : Symbol
+    {
+        private static readonly List<Index> Indices = new List<Index>();
+        public static Index DAX = new Index("DAX", 2001);
+        private Index(string symbol, int uniqueId) : base(symbol, uniqueId)
+        {
+            Indices.Add(this);
+        }
+
+        public static Index Get(string symbol)
+            => Indices.Single(i => i.Val == symbol);
+    }
+
+
 
     public class CurrencyPair : Symbol
     {
@@ -73,10 +97,8 @@ namespace Carvers.Models
         public static CurrencyPair USDJPY = new CurrencyPair(Currency.USD, Currency.JPY);
 
 
-        public int UniqueId { get; }
-
         private CurrencyPair(Currency target, Currency @base)
-        : base(target.ToString() + @base.ToString())
+        : base(target.ToString() + @base.ToString(), target.UniqueId * 100 + @base.UniqueId)
         {
             BaseCurrency = @base;
             TargetCurrency = target;
@@ -86,7 +108,6 @@ namespace Carvers.Models
 
             Pairs[TargetCurrency].Add(this);
 
-            UniqueId = target.UniqueId * 100 + @base.UniqueId;
         }
 
         public Currency BaseCurrency { get; }

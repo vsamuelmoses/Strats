@@ -140,14 +140,29 @@ namespace FxTrendFollowing
             return CurrencyPair.Get(Currency.Get(targetCur), Currency.Get(baseCur));
         }
 
-        public static string FxFilePathGetter(CurrencyPair cxPair, DateTimeOffset dateTime)
+        public static string SymbolFilePathGetter(Symbol symbol, DateTimeOffset dateTime)
         {
-            if(dateTime.Year == 2018)
-                return Path.Combine(Paths.Data, dateTime.Year.ToString(),
-                    $"DAT_MT_{cxPair.ToString()}_M1_{dateTime.Year.ToString()}02.csv");
+            switch (symbol)
+            {
+                case CurrencyPair pair:
+                {
+                    if (dateTime.Year == 2018)
+                        return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                            $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}02.csv");
 
-            return Path.Combine(Paths.Data, dateTime.Year.ToString(),
-                $"DAT_MT_{cxPair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
+                    return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                        $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
+                }
+
+                case Index index:
+                {
+                    return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                        $"{index.ToString()}_M1_{dateTime.Year.ToString()}.csv");
+                }
+
+                default:
+                    throw new Exception("Unknown Symbol");
+            }
         }
 
         public static string FxEURUSDFilePathGetter(DateTimeOffset dateTime)
