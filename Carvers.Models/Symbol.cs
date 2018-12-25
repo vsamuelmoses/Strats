@@ -52,6 +52,7 @@ namespace Carvers.Models
     {
         private static readonly List<Index> Indices = new List<Index>();
         public static Index DAX = new Index("DAX", 2001);
+        public static Index FTSE = new Index("FTSE", 2002);
         private Index(string symbol, int uniqueId) : base(symbol, uniqueId)
         {
             Indices.Add(this);

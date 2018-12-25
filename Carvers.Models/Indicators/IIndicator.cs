@@ -146,7 +146,8 @@ namespace Carvers.Models.Indicators
 
                 var isgreen = (candle.High > prevCandle.High && candle.Low > prevCandle.Low);
 
-                if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
+                //if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
+                if (candle.Low > prevCandle.Low && candle.High < prevCandle.High)
                 {
                     stream.OnNext(HACandle);
                 }

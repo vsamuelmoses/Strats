@@ -121,13 +121,22 @@ namespace Carvers.Models.Extensions
 
     public static class CandleStickPatternsExtensions
     {
-        public static bool IsInverterHammer(this Candle candle)
+        public static bool IsInverterHammer(this Candle candle, int parts)
         {
             var totalLength = candle.High - candle.Low;
-            var fifthPart = totalLength / 5;
+            var fifthPart = totalLength / parts;
             var lastPart = candle.Low + fifthPart;
 
             return candle.Open < lastPart && candle.Close < lastPart;
+        }
+
+        public static bool IsHammer(this Candle candle, int parts)
+        {
+            var totalLength = candle.High - candle.Low;
+            var fifthPart = totalLength / parts;
+            var lastPart = candle.High - fifthPart;
+
+            return candle.Open > lastPart && candle.Close > lastPart;
         }
 
     }

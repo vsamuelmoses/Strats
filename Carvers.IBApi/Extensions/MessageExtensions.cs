@@ -29,7 +29,8 @@ namespace Carvers.IBApi.Extensions
             "dd/M/yyyy HH:mm:ss zzz",
             "dd/MM/yyyy HH:mm:ss zzz",
             "yyyy.MM.dd",
-            "dd.MM.yyyy HH:mm:ss.fff GMT-0000"
+            "dd.MM.yyyy HH:mm:ss.fff GMT-0000",
+            "dd.MM.yyyy HH:mm:ss.fff GMT+0100"
         };
 
         public static RealTimeBarMessage ToRealTimeBarMessage(string[] values, int tickerId)
@@ -65,11 +66,11 @@ namespace Carvers.IBApi.Extensions
                 if (!double.TryParse(values[index++], out close))
                     return null;
 
-                long volume;
-                if (!long.TryParse(values[index++], out volume))
+                double volume;
+                if (!double.TryParse(values[index++], out volume))
                     volume = 0;
 
-                return new RealTimeBarMessage(IBTWS.RT_BARS_ID_BASE + tickerId, timestamp.ToUnixTimeSeconds(), open, high, low, close, volume, 0, 0);
+                return new RealTimeBarMessage(IBTWS.RT_BARS_ID_BASE + tickerId, timestamp.ToUnixTimeSeconds(), open, high, low, close, (long)(volume * 1000), 0, 0);
             }
             catch (Exception)
             {
