@@ -10,8 +10,8 @@
         mc:Ignorable="d"
         Title="BreakoutView" Height="450" Width="800">
     <Grid>
-        <TabControl>
-            <TabItem Header="Strategy Runner">
+        <TabControl >
+            <TabItem>
                 <DockPanel>
                     <Button Content="Start" DockPanel.Dock="Top" Command="{Binding StartCommand}"/>
                     <Button Content="Stop" DockPanel.Dock="Top" Command="{Binding StopCommand}"/>
@@ -26,7 +26,7 @@
                     <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />
                     <!--<charting:TraderView
                         DataContext="{Binding ChartVm}"/>-->
-                    
+
                     <!--<charting:TraderView DataContext="{Binding ChartVm}"></charting:TraderView>-->
                     <multiPane:CreateMultiPaneStockCharts DataContext="{Binding TraderChart}"/>
                 </DockPanel>
