@@ -12,7 +12,13 @@ namespace Carvers.Models
 
         public static double CurrentProfitLoss(this IOrder order, Candle candle, int size)
         {
-            var movement = size * (candle.Close - order.OrderInfo.Price.Value);
+            return CurrentProfitLoss(order, candle.Close, size);
+        }
+
+
+        public static double CurrentProfitLoss(this IOrder order, double price, int size)
+        {
+            var movement = size * (price - order.OrderInfo.Price.Value);
             if (order is BuyOrder)
                 return movement;
 

@@ -10,27 +10,53 @@
         mc:Ignorable="d"
         Title="BreakoutView" Height="450" Width="800">
     <Grid>
-        <TabControl >
-            <TabItem>
-                <DockPanel>
-                    <Button Content="Start" DockPanel.Dock="Top" Command="{Binding StartCommand}"/>
-                    <Button Content="Stop" DockPanel.Dock="Top" Command="{Binding StopCommand}"/>
-                    <Grid DockPanel.Dock="Top">
-                        <StackPanel Grid.Column="2" DataContext="{Binding Reporters.SummaryReport}">
-                            <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
-                            <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
-                            <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
-                            <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
-                        </StackPanel>
-                    </Grid>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />
-                    <!--<charting:TraderView
-                        DataContext="{Binding ChartVm}"/>-->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-                    <!--<charting:TraderView DataContext="{Binding ChartVm}"></charting:TraderView>-->
-                    <multiPane:CreateMultiPaneStockCharts DataContext="{Binding TraderChart}"/>
-                </DockPanel>
-            </TabItem>
+        <StackPanel Grid.Column="0">
+            <Button Content="Start" DockPanel.Dock="Top" Command="{Binding StartCommand}"/>
+            <Button Content="Stop" DockPanel.Dock="Top" Command="{Binding StopCommand}"/>
+            <DataGrid x:Name="summaryGrid" ItemsSource="{Binding StrategyVms}" AutoGenerateColumns="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Instrument" Binding="{Binding Instrument}" />
+                    <DataGridTextColumn Header="P/L" Binding="{Binding Reporters.SummaryReport.ProfitLoss}" />
+                    <DataGridTextColumn Header="Total Trades" Binding="{Binding Reporters.SummaryReport.TotalTrades}" />
+                    <DataGridTextColumn Header="Win %" Binding="{Binding Reporters.SummaryReport.WinningPercentage}" />
+                    <DataGridTextColumn Header="Sharp%" Binding="{Binding Reporters.SummaryReport.SharpeRatio}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+        
+        <TabControl Grid.Column="1"
+                    SelectedItem="{Binding ElementName=summaryGrid, Path=SelectedItem}"
+                    ItemsSource="{Binding StrategyVms}">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Instrument}"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>                
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top">
+                            <StackPanel Grid.Column="2" DataContext="{Binding Reporters.SummaryReport}">
+                                <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                                <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                                <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                                <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />
+                        <!--<charting:TraderView
+                            DataContext="{Binding ChartVm}"/>-->
+
+                        <!--<charting:TraderView DataContext="{Binding ChartVm}"></charting:TraderView>-->
+                        <multiPane:CreateMultiPaneStockCharts DataContext="{Binding TraderChart}"/>
+                    </DockPanel>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
         </TabControl>
     </Grid>
 </Window>

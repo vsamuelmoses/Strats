@@ -49,19 +49,19 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
             var candleFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
 
-            var ma10Day = new MovingAverageStreamingService(Indicators.SMA10, candleFeed, candle => candle.Close, 10);
-            var ma20Day = new MovingAverageStreamingService(Indicators.SMA20, candleFeed, candle => candle.Close, 20);
-            var ma50Day = new MovingAverageStreamingService(Indicators.SMA50, candleFeed, candle => candle.Close, 50);
-            var ma100Day = new MovingAverageStreamingService(Indicators.SMA100, candleFeed, candle => candle.Close, 100);
-            var ma200Day = new MovingAverageStreamingService(Indicators.SMA200, candleFeed, candle => candle.Close, 200);
+            var ma10Day = new MovingAverageFeed(Indicators.SMA10, candleFeed, candle => candle.Close, 10);
+            var ma20Day = new MovingAverageFeed(Indicators.SMA20, candleFeed, candle => candle.Close, 20);
+            var ma50Day = new MovingAverageFeed(Indicators.SMA50, candleFeed, candle => candle.Close, 50);
+            var ma100Day = new MovingAverageFeed(Indicators.SMA100, candleFeed, candle => candle.Close, 100);
+            var ma200Day = new MovingAverageFeed(Indicators.SMA200, candleFeed, candle => candle.Close, 200);
 
 
-            var haFeed = new HeikinAshiCandleFeed(candleFeed);
+            var haFeed = new ShadowCandleFeed(candleFeed, 2);
 
             var context = new SMAContext(Strategy, new List<IIndicator>
             {
                 ma10Day.MovingAverage, ma20Day.MovingAverage, ma50Day.MovingAverage, ma100Day.MovingAverage, ma200Day.MovingAverage,
-                haFeed.HACandle
+                haFeed.ShadowCandle
             }, Candle.Null);
 
             //TODO: for manual feed, change the candle span

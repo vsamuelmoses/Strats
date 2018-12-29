@@ -80,15 +80,8 @@ namespace Carvers.Charting.MultiPane
             {
                 var candle = tup.Item1;
                 stockPrices.Append(candle.TimeStamp.DateTime, candle.Open, candle.High, candle.Low, candle.Close);
-
                 tup.Item2.ForEach(it => OnIndicator(it.Item1, tup.Item1, it.Item2));
             });
-
-
-            //candleAndIndicatorFeed
-            //    .Subscribe(t => t.Item2.ForEach(it => OnIndicator(it.Item1, t.Item1, it.Item2)));
-
-
 
             if (eventsFeed != null)
             {

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Security.Cryptography;
 using System.Windows.Forms;
+using Carvers.Models.Extensions;
 
 namespace Carvers.Models.Indicators
 {
@@ -70,7 +72,12 @@ namespace Carvers.Models.Indicators
         }
     }
 
-    public interface IIndicatorStreamingService<T>
+    public interface IIndicatorFeed
+    {
+        
+    }
+
+    public interface IIndicatorFeed<out T> : IIndicatorFeed
         where T : IIndicator
     {
         IObservable<T> Stream { get; }
@@ -78,12 +85,12 @@ namespace Carvers.Models.Indicators
 
 
 
-    public class MovingAverageStreamingService
-        : IIndicatorStreamingService<MovingAverage>
+    public class MovingAverageFeed
+        : IIndicatorFeed<MovingAverage>
     {
         private readonly Subject<MovingAverage> stream;
 
-        public MovingAverageStreamingService(
+        public MovingAverageFeed(
             string description,
             IObservable<Candle> candleStream,
             Func<Candle, double> candleToValue,
@@ -124,14 +131,108 @@ namespace Carvers.Models.Indicators
         public static readonly HeikinAshiCandle Null = new HeikinAshiCandle(
             new Ohlc(double.NaN, double.NaN, double.NaN, double.NaN, double.NaN), DateTimeOffset.MinValue,
             TimeSpan.MinValue);
+
     }
 
 
+    public class ShadowCandle: Candle, IIndicator
+    {
+        public int SupportStrength { get; }
+        public int ResStrength { get; }
+
+        protected ShadowCandle(Ohlc ohlc, DateTimeOffset timeStamp)
+            : base(ohlc, timeStamp)
+        {
+        }
+
+        public ShadowCandle(Ohlc ohlc, DateTimeOffset timeStamp, TimeSpan span, int supportStrength, int resStrength)
+            : base(ohlc, timeStamp, span)
+        {
+            SupportStrength = supportStrength;
+            ResStrength = resStrength;
+        }
+
+        public bool IsGreen { get; set; }
+
+        public string Description => Indicators.ShadowCandle;
+        public bool HasValidValue => TimeStamp != DateTimeOffset.MinValue && TimeStamp != DateTimeOffset.MaxValue;
+
+        public static readonly ShadowCandle Null = new ShadowCandle(
+            new Ohlc(double.NaN, double.NaN, double.NaN, double.NaN, double.NaN), DateTimeOffset.MinValue,
+            TimeSpan.MinValue, 1, 1);
+    }
+
+
+    public class ShadowCandleFeed
+        : IIndicatorFeed<ShadowCandle>
+    {
+        private readonly int _lookbackCount;
+        private readonly Subject<ShadowCandle> stream;
+        private readonly List<ShadowCandle> lookback;
+        public ShadowCandleFeed(IObservable<Candle> candleStream, int lookbackCount)
+        {
+            _lookbackCount = lookbackCount;
+            stream = new Subject<ShadowCandle>();
+            lookback = new List<ShadowCandle>();
+
+            ShadowCandle = ShadowCandle.Null;
+
+            candleStream.Subscribe(candle =>
+            {
+                if (prevCandle == Candle.Null)
+                    prevCandle = candle;
+                
+                var isgreen = (candle.High > prevCandle.High && candle.Low > prevCandle.Low);
+
+                //if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
+                if (candle.Low > prevCandle.Low && candle.High < prevCandle.High)
+                {
+                    lookback.Add(ShadowCandle);
+                    if (lookback.Count > lookbackCount)
+                        lookback.RemoveAt(0);
+
+
+                    stream.OnNext(ShadowCandle);
+                }
+                else
+                {
+                    prevCandle = candle;
+
+                    int supportStrength = 0;
+                    int resistanceStrength = 0;
+
+                    var high = prevCandle.High;
+                    var low = prevCandle.Low;
+                    if (ShadowCandle != null)
+                    {
+                        resistanceStrength = Math.Abs(ShadowCandle.High - candle.High) > 20d ? 1 : 2;
+                        supportStrength = Math.Abs(ShadowCandle.Low - candle.Low) > 20d ? 1 : 2;
+                    }
+
+                    ShadowCandle = new ShadowCandle(new Ohlc(prevCandle.Open, high, low, prevCandle.Close, prevCandle.Ohlc.Volume),
+                        candle.TimeStamp, candle.Span, supportStrength, resistanceStrength);
+                    ShadowCandle.IsGreen = isgreen;
+
+                    lookback.Add(ShadowCandle);
+                    if (lookback.Count > lookbackCount)
+                        lookback.RemoveAt(0);
+
+                    stream.OnNext(ShadowCandle);
+                }
+            });
+        }
+
+        private Candle prevCandle = Candle.Null;
+        public ShadowCandle ShadowCandle { get; private set; }
+        public IEnumerable<ShadowCandle> Lookback => lookback;
+        
+        public IObservable<ShadowCandle> Stream => stream;
+
+    }
     public class HeikinAshiCandleFeed
-        : IIndicatorStreamingService<HeikinAshiCandle>
+        : IIndicatorFeed<HeikinAshiCandle>
     {
         private readonly Subject<HeikinAshiCandle> stream;
-
         public HeikinAshiCandleFeed(IObservable<Candle> candleStream)
         {
             stream = new Subject<HeikinAshiCandle>();
@@ -140,71 +241,28 @@ namespace Carvers.Models.Indicators
 
             candleStream.Subscribe(candle =>
             {
-                if (prevCandle == Candle.Null)
-                    prevCandle = candle;
+                var open = candle.Open;
+                var high = candle.High;
+                var low = candle.Low;
+                var close = candle.Close;
 
-
-                var isgreen = (candle.High > prevCandle.High && candle.Low > prevCandle.Low);
-
-                //if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
-                if (candle.Low > prevCandle.Low && candle.High < prevCandle.High)
-                {
-                    stream.OnNext(HACandle);
-                }
+                var haClose = (open + high + low + close) / 4;
+                double haOpen;
+                if (HACandle != HeikinAshiCandle.Null)
+                    haOpen = (HACandle.Open + HACandle.Close) / 2;
                 else
-                {
-                    prevCandle = candle;
+                    haOpen = (open + close) / 2;
 
-                    HACandle = new HeikinAshiCandle(new Ohlc(prevCandle.Open, prevCandle.High, prevCandle.Low, prevCandle.Close, prevCandle.Ohlc.Volume),
-                        candle.TimeStamp, candle.Span);
-                    HACandle.IsGreen = isgreen;
+                var haHigh = Math.Max(Math.Max(high, haOpen), haClose);
+                var haLow = Math.Min(Math.Min(low, haOpen), haClose);
 
-                    stream.OnNext(HACandle);
-                }
-
-                
+                HACandle = new HeikinAshiCandle(new Ohlc(haOpen, haHigh, haLow, haClose, candle.Ohlc.Volume), candle.TimeStamp, candle.Span);
+                stream.OnNext(HACandle);
             });
         }
 
-        private Candle prevCandle = Candle.Null;
         public HeikinAshiCandle HACandle { get; private set; }
-
         public IObservable<HeikinAshiCandle> Stream => stream;
-        //}
-        //public class HeikinAshiCandleFeed
-        //    : IIndicatorStreamingService<HeikinAshiCandle>
-        //{
-        //    private readonly Subject<HeikinAshiCandle> stream;
-        //    public HeikinAshiCandleFeed(IObservable<Candle> candleStream)
-        //    {
-        //        stream = new Subject<HeikinAshiCandle>();
-
-        //        HACandle = HeikinAshiCandle.Null;
-
-        //        candleStream.Subscribe(candle =>
-        //        {
-        //            var open = candle.Open;
-        //            var high = candle.High;
-        //            var low = candle.Low;
-        //            var close = candle.Close;
-
-        //            var haClose = (open + high + low + close) / 4;
-        //            double haOpen;
-        //            if (HACandle != HeikinAshiCandle.Null)
-        //                haOpen = (HACandle.Open + HACandle.Close) / 2;
-        //            else
-        //                haOpen = (open + close) / 2;
-
-        //            var haHigh = Math.Max(Math.Max(high, haOpen), haClose);
-        //            var haLow = Math.Min(Math.Min(low, haOpen), haClose);
-
-        //            HACandle = new HeikinAshiCandle(new Ohlc(haOpen, haHigh, haLow, haClose, candle.Ohlc.Volume), candle.TimeStamp, candle.Span);
-        //            stream.OnNext(HACandle);
-        //        });
-        //    }
-
-        //    public HeikinAshiCandle HACandle { get; private set; }
-        //    public IObservable<HeikinAshiCandle> Stream => stream;
-        //}
     }
+
 }

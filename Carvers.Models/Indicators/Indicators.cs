@@ -3,6 +3,7 @@
     public static class Indicators
     {
         public const string HeikinAshi = "HeikinAshi";
+        public const string ShadowCandle = "Shadow";
 
         public const string CloseSma5 = "SMA 5";
         public const string CloseSma14 = "SMA 14";
