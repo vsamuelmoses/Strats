@@ -24,7 +24,8 @@
                     <DataGridTextColumn Header="P/L" Binding="{Binding Reporters.SummaryReport.ProfitLoss}" />
                     <DataGridTextColumn Header="Total Trades" Binding="{Binding Reporters.SummaryReport.TotalTrades}" />
                     <DataGridTextColumn Header="Win %" Binding="{Binding Reporters.SummaryReport.WinningPercentage}" />
-                    <DataGridTextColumn Header="Sharp%" Binding="{Binding Reporters.SummaryReport.SharpeRatio}" />
+                    <DataGridTextColumn Header="Sharpe" Binding="{Binding Reporters.SummaryReport.SharpeRatio}" />
+                    <DataGridTextColumn Header="Max DD %" Binding="{Binding Reporters.SummaryReport.MaxDDPercentage}" />
                 </DataGrid.Columns>
             </DataGrid>
         </StackPanel>

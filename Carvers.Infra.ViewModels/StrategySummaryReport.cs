@@ -16,6 +16,7 @@ namespace Carvers.Infra.ViewModels
         public StrategySummaryReport(IEnumerable<IStrategy> strategies)
         {
             _profitLossStream = new Subject<DateTimeEvent<Price>>();
+            ddCalculator = new SimpleDrawDownCalculator();
             var closedOrders = strategies
                 .Select(strat => strat.CloseddOrders)
                 .Merge()
@@ -34,7 +35,7 @@ namespace Carvers.Infra.ViewModels
 
             ProfitLoss = orders.ProfitLoss();
             SharpeRatio = SharpeRatioCalculator.Calculate(orders);
-
+            MaxDDPercentage = ddCalculator.Calculate(ProfitLoss.Value);
             _profitLossStream.OnNext(new DateTimeEvent<Price>(recentClosedOrder.OrderInfo.TimeStamp, ProfitLoss));
         }
 
@@ -83,7 +84,19 @@ namespace Carvers.Infra.ViewModels
         }
 
 
+        public double MaxDDPercentage
+        {
+            get => _maxDdPercentage;
+            set
+            {
+                _maxDdPercentage = value; 
+                OnPropertyChanged();
+            }
+        }
+
         private double sharpeRatio;
+        private double _maxDdPercentage;
+        private SimpleDrawDownCalculator ddCalculator;
 
         public double SharpeRatio
         {
@@ -94,4 +107,6 @@ namespace Carvers.Infra.ViewModels
         public IObservable<DateTimeEvent<Price>> ProfitLossStream => _profitLossStream;
 
     }
+
+
 }

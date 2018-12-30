@@ -98,6 +98,7 @@
     <Compile Include="SellOrder.cs" />
     <Compile Include="SharpeRatioCalculator.cs" />
     <Compile Include="ShortSellOrder.cs" />
+    <Compile Include="SimpleDrawDownCalculator.cs" />
     <Compile Include="StockData.cs" />
     <Compile Include="Symbol.cs" />
     <Compile Include="Timestamped.cs" />
