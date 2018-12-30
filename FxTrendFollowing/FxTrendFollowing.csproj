@@ -102,9 +102,10 @@
     </Compile>
     <Compile Include="CurrencyStrengthFeed.cs" />
     <Compile Include="Reporters\CurrencyStrengthLogger.cs" />
-    <Compile Include="Strategies\CandleStickPatternStrategy.cs" />
+    <Compile Include="Strategies\ShadowBreakoutStrategy.cs" />
     <Compile Include="Strategies\Day20BreakoutTrade.cs" />
     <Compile Include="Strategies\MovingAveragesPerfectOrder.cs" />
+    <Compile Include="Strategies\ShadowBreakoutDiversified.cs" />
     <Compile Include="StrategyRunner.cs" />
     <Compile Include="TrendFollowing.cs" />
     <Compile Include="TrendFollowingOptions.cs" />

@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Windows.Input;
 using System.Windows.Threading;
-using System.Xml.Schema;
 using Carvers.Charting.MultiPane;
 using Carvers.Charting.ViewModels;
 using Carvers.IB.App;
@@ -23,16 +21,16 @@ using IBApi;
 
 namespace FxTrendFollowing.Strategies
 {
-    public class CandleStickPatternStrategy : ViewModel
+    public class ShadowBreakoutStrategy : ViewModel
     {
         public Symbol Instrument { get; }
         private string _status;
-        private Subject<CandleStickPatternContext> _contextStream;
+        private Subject<ShadowBreakoutContext> _contextStream;
         private TraderViewModel _chartVm;
         private MultiTraderViewModel _multiTraderVm;
         private CreateMultiPaneStockChartsViewModel _traderChart;
 
-        public CandleStickPatternStrategy(Symbol instrument)
+        public ShadowBreakoutStrategy(Symbol instrument)
         {
             Instrument = instrument;
 
@@ -45,11 +43,11 @@ namespace FxTrendFollowing.Strategies
 
             var interestedSymbols = new[] { instrument };
 
-            _contextStream = new Subject<CandleStickPatternContext>();
+            _contextStream = new Subject<ShadowBreakoutContext>();
 
             Strategy = new Strategy("CandleStick Pattern");
 
-            var nextCondition = CandleStickPatternTrade.Strategy;
+            var nextCondition = ShadowBreakoutLogic.Strategy;
 
             var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
             var hourlyFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
@@ -57,7 +55,7 @@ namespace FxTrendFollowing.Strategies
             var shadowCandleFeed = new ShadowCandleFeed(dailyfeed, 2);
 
             var candleFeed = hourlyFeed;
-            var context = new CandleStickPatternContext(Strategy, interestedSymbols, new List<IIndicatorFeed> { shadowCandleFeed },
+            var context = new ShadowBreakoutContext(Strategy, interestedSymbols, new List<IIndicatorFeed> { shadowCandleFeed },
                 new Lookback(2, new ConcurrentQueue<Candle>()),
                 interestedSymbols.Select(symbol => new TargetProfitInfo(symbol, new AvgCalculator(7), new AvgCalculator(7))).ToList());
 
@@ -68,7 +66,7 @@ namespace FxTrendFollowing.Strategies
                 {
                     var candle = tup.Item1;
                     Status = $"Executing {candle.TimeStamp}";
-                    var newcontext = new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds, context.LookbackCandles.Add(candle), context.ContextInfos);
+                    var newcontext = new ShadowBreakoutContext(context.Strategy, context.Symbols, context.IndicatorsFeeds, context.LookbackCandles.Add(candle), context.ContextInfos);
                     (nextCondition, context) = nextCondition().Evaluate(newcontext, candle);
                     _contextStream.OnNext(context);
                 });
@@ -187,8 +185,6 @@ namespace FxTrendFollowing.Strategies
                 Average = values.Average();
             }
 
-            
-
             return this;
         }
 
@@ -211,50 +207,23 @@ namespace FxTrendFollowing.Strategies
     }
 
 
-    public static class CandleStickPatternTrade
+    public static class ShadowBreakoutLogic
     {
-        public static List<double> mrSellMaxProfit = new List<double>();
-        private static List<double> mrSellMaxLoss = new List<double>();
-        public static List<double> mrBuyMaxProfit = new List<double>();
-        private static List<double> mrBuyMaxLoss = new List<double>();
-
-        private static int mrSellCount;
-        private static int mrBuyCount;
-
-        private static int buyCount;
-        private static double buyTp;
-
-        private static int ssCount;
-        private static double ssTp;
-
-        //private static double takeProfit = 18d;// DAX
-        //private static double takeProfit = 5d;// FTSE
-        private static double takeProfit = 0.0010d;// gbpusd
-        //private static double takeProfit = 0.00060d;// aud.usd
-
-        //private static Candle previousPreviousShadow;
-        //private static Candle previousShadow;
-        //private static Candle currentShadow;
-        //private static int candlesAfterPerfectOrder = 0;
-
-        private static Func<FuncCondition<CandleStickPatternContext>> contextReadyCondition = () =>
-            new FuncCondition<CandleStickPatternContext>(
+        private static Func<FuncCondition<ShadowBreakoutContext>> contextReadyCondition = () =>
+            new FuncCondition<ShadowBreakoutContext>(
                 onSuccess: didPriceHitSR,
                 onFailure: contextReadyCondition,
                 predicate: context => context.IsReady().ToPredicateResult());
 
-        private static Func<FuncCondition<CandleStickPatternContext>> didPriceHitSR = () =>
-            new FuncCondition<CandleStickPatternContext>(
+        private static Func<FuncCondition<ShadowBreakoutContext>> didPriceHitSR = () =>
+            new FuncCondition<ShadowBreakoutContext>(
                 onSuccess: didPriceHitSR,
                 onFailure: didPriceHitSR,
-                predicates: new List<Func<CandleStickPatternContext, PredicateResult>>()
+                predicates: new List<Func<ShadowBreakoutContext, PredicateResult>>()
                 {
                     {
                         ctx => 
                         {
-                            //if(ctx.LastCandle.TimeStamp.Hour > 6)
-                            //    return PredicateResult.Fail;
-
                             if (ctx.LastCandle.TimeStamp.DateTime.Date == new DateTime(2017, 01, 16)
                                 && ctx.LastCandle.TimeStamp.Hour == 06)
                             {
@@ -281,75 +250,81 @@ namespace FxTrendFollowing.Strategies
                 },
                 onSuccessAction: ctx =>
                 {
-                    var shadowCandle = ctx.IndicatorsFeeds.OfType<ShadowCandleFeed>().Single().ShadowCandle;
-
-                    var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.High);
-                    var isSell = ctx.LastCandle.PassedThroughPrice(shadowCandle.Low);
-
-                    var side = isBuy ? Side.Buy : Side.ShortSell;
-                    var entryPrice = isBuy ? shadowCandle.High : shadowCandle.Low;
-
-
-                    var targetProfitInfo = ctx.ContextInfos.OfType<TargetProfitInfo>()
-                        .Single(info => ctx.Symbols.Contains(info.Symbol));
-
-
-
-                    if (isBuy && targetProfitInfo.BuyTpCalculator.Average.HasValue)
                     {
-                        var candle = ctx.LastCandle;
-                        ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.High, Side.Buy);
+                        if (ctx.Strategy.OpenOrder != null)
+                            return ctx;
 
-                        var exitPrice = ctx.LastCandle.Close;
+                        var shadowCandle = ctx.IndicatorsFeeds.OfType<ShadowCandleFeed>().Single().ShadowCandle;
 
-                        if (ctx.LastCandle.High - shadowCandle.High > targetProfitInfo.BuyTpCalculator.Average.Value)
-                            exitPrice = (shadowCandle.High + targetProfitInfo.BuyTpCalculator.Average.Value);
+                        var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.High);
+                        var isSell = ctx.LastCandle.PassedThroughPrice(shadowCandle.Low);
 
-                        ctx.Strategy.Close(
-                            new SellOrder((BuyOrder)ctx.Strategy.OpenOrder,
-                                new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy, exitPrice.USD(),
-                                    100000, candle)));
-
-                    }
+                        var side = isBuy ? Side.Buy : Side.ShortSell;
+                        var entryPrice = isBuy ? shadowCandle.High : shadowCandle.Low;
 
 
-                    if (isSell && targetProfitInfo.SellTpCalculator.Average.HasValue)
-                    {
-                        var candle = ctx.LastCandle;
-                        ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.Low, Side.ShortSell);
+                        var targetProfitInfo = ctx.ContextInfos.OfType<TargetProfitInfo>()
+                            .Single(info => ctx.Symbols.Contains(info.Symbol));
 
-                        var exitPrice = ctx.LastCandle.Close;
 
-                        if (shadowCandle.Low - ctx.LastCandle.Low > targetProfitInfo.SellTpCalculator.Average.Value)
-                            exitPrice = (shadowCandle.Low - targetProfitInfo.SellTpCalculator.Average.Value);
 
-                        ctx.Strategy.Close(
-                            new BuyToCoverOrder((ShortSellOrder)ctx.Strategy.OpenOrder,
-                                new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy,
-                                    exitPrice.USD(),
-                                    100000, candle)));
-                    }
-
-                    if (isBuy)
-                    {
-                        var profit = ctx.LastCandle.High - entryPrice;
-
-                        if (profit > 0)
+                        if (isBuy && targetProfitInfo.BuyTpCalculator.Average.HasValue)
                         {
-                            targetProfitInfo.BuyTpCalculator.Add(profit);
+                            var candle = ctx.LastCandle;
+                            ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.High, Side.Buy);
+
+                            var exitPrice = ctx.LastCandle.Close;
+
+                            if (ctx.LastCandle.High - shadowCandle.High >
+                                targetProfitInfo.BuyTpCalculator.Average.Value)
+                                exitPrice = (shadowCandle.High + targetProfitInfo.BuyTpCalculator.Average.Value);
+
+                            ctx.Strategy.Close(
+                                new SellOrder((BuyOrder) ctx.Strategy.OpenOrder,
+                                    new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy, exitPrice.USD(),
+                                        100000, candle)));
+
+                        }
+
+                        if (isSell && targetProfitInfo.SellTpCalculator.Average.HasValue)
+                        {
+                            var candle = ctx.LastCandle;
+                            ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.Low,
+                                Side.ShortSell);
+
+                            var exitPrice = ctx.LastCandle.Close;
+
+                            if (shadowCandle.Low - ctx.LastCandle.Low > targetProfitInfo.SellTpCalculator.Average.Value)
+                                exitPrice = (shadowCandle.Low - targetProfitInfo.SellTpCalculator.Average.Value);
+
+                            ctx.Strategy.Close(
+                                new BuyToCoverOrder((ShortSellOrder) ctx.Strategy.OpenOrder,
+                                    new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy,
+                                        exitPrice.USD(),
+                                        100000, candle)));
+                        }
+
+                        if (isBuy)
+                        {
+                            var profit = ctx.LastCandle.High - entryPrice;
+
+                            if (profit > 0)
+                            {
+                                targetProfitInfo.BuyTpCalculator.Add(profit);
+                            }
+                        }
+
+                        if (isSell)
+                        {
+                            var profit = entryPrice - ctx.LastCandle.Low;
+
+                            if (profit > 0)
+                            {
+                                targetProfitInfo.SellTpCalculator.Add(profit);
+                            }
                         }
                     }
 
-                    if (isSell)
-                    {
-                        var profit = entryPrice - ctx.LastCandle.Low;
-
-                        if (profit > 0)
-                        {
-                            targetProfitInfo.SellTpCalculator.Add(profit);
-                        }
-                    }
-                    
                     return ctx;
                 });
 
@@ -357,11 +332,11 @@ namespace FxTrendFollowing.Strategies
 
         public static int count = 0;
 
-        private static Func<FuncCondition<CandleStickPatternContext>> exitCondition = () =>
-            new FuncCondition<CandleStickPatternContext>(
+        private static Func<FuncCondition<ShadowBreakoutContext>> exitCondition = () =>
+            new FuncCondition<ShadowBreakoutContext>(
                 onSuccess: didPriceHitSR,
                 onFailure: exitCondition,
-                predicates: new List<Func<CandleStickPatternContext, PredicateResult>>()
+                predicates: new List<Func<ShadowBreakoutContext, PredicateResult>>()
                 {
                     {
                         ctx =>
@@ -471,10 +446,10 @@ namespace FxTrendFollowing.Strategies
                     throw new Exception("Unexpected error");
                 });
 
-        public static Func<FuncCondition<CandleStickPatternContext>> Strategy = contextReadyCondition;
+        public static Func<FuncCondition<ShadowBreakoutContext>> Strategy = contextReadyCondition;
     }
 
-    public class CandleStickPatternContext : IContext
+    public class ShadowBreakoutContext : IContext
     {
         public Strategy Strategy { get; }
         public IEnumerable<Symbol> Symbols { get; }
@@ -482,7 +457,7 @@ namespace FxTrendFollowing.Strategies
         public Lookback LookbackCandles { get; }
         public IEnumerable<IContextInfo> ContextInfos { get; }
 
-        public CandleStickPatternContext(Strategy strategy,
+        public ShadowBreakoutContext(Strategy strategy,
             IEnumerable<Symbol> symbols, 
             IEnumerable<IIndicatorFeed> indicators,
             Lookback lookbackCandles,
@@ -490,7 +465,6 @@ namespace FxTrendFollowing.Strategies
         {
             Strategy = strategy;
             Symbols = symbols;
-            //Indicators = indicators.ToDictionary(ma => ma.Description, ma => ma);
             IndicatorsFeeds = indicators;
             LookbackCandles = lookbackCandles;
             ContextInfos = contextInfos;
@@ -503,9 +477,9 @@ namespace FxTrendFollowing.Strategies
             => LookbackCandles.IsComplete();
     }
 
-    public static class CandleStickPatternContextExtensions
+    public static class ShadowBreakoutContextExtensions
     {
-        public static CandleStickPatternContext PlaceOrder(this CandleStickPatternContext context, Candle lastCandle,
+        public static ShadowBreakoutContext PlaceOrder(this ShadowBreakoutContext context, Candle lastCandle,
             Side side)
         {
             if (side == Side.ShortSell)
@@ -514,7 +488,7 @@ namespace FxTrendFollowing.Strategies
                     new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close,
                         100000));
                 context.Strategy.Open(shortSellOrder);
-                return new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
+                return new ShadowBreakoutContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
                     context.LookbackCandles, context.ContextInfos);
             }
 
@@ -523,14 +497,14 @@ namespace FxTrendFollowing.Strategies
                 context.Strategy.Open(new BuyOrder(
                     new OrderInfo(lastCandle.TimeStamp, CurrencyPair.EURGBP, context.Strategy, lastCandle.Ohlc.Close,
                         100000)));
-                return new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
+                return new ShadowBreakoutContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
                     context.LookbackCandles, context.ContextInfos);
             }
 
             throw new Exception("unexpected error");
         }
 
-        public static CandleStickPatternContext PlaceOrder(this CandleStickPatternContext context, DateTimeOffset timeStamp, Candle candle, double entryPrice,
+        public static ShadowBreakoutContext PlaceOrder(this ShadowBreakoutContext context, DateTimeOffset timeStamp, Candle candle, double entryPrice,
             Side side)
         {
             if (side == Side.ShortSell)
@@ -539,7 +513,7 @@ namespace FxTrendFollowing.Strategies
                     new OrderInfo(timeStamp, context.Symbols.Single(), context.Strategy, entryPrice.USD(),
                         100000));
                 context.Strategy.Open(shortSellOrder);
-                return new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
+                return new ShadowBreakoutContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
                     context.LookbackCandles, context.ContextInfos);
             }
 
@@ -548,15 +522,15 @@ namespace FxTrendFollowing.Strategies
                 context.Strategy.Open(new BuyOrder(
                     new OrderInfo(timeStamp, context.Symbols.Single(), context.Strategy, entryPrice.USD(),
                         100000)));
-                return new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
+                return new ShadowBreakoutContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
                     context.LookbackCandles, context.ContextInfos);
             }
 
             throw new Exception("unexpected error");
         }
 
-        public static CandleStickPatternContext AddContextInfo(this CandleStickPatternContext context, IContextInfo info)
-            => new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds, context.LookbackCandles,
+        public static ShadowBreakoutContext AddContextInfo(this ShadowBreakoutContext context, IContextInfo info)
+            => new ShadowBreakoutContext(context.Strategy, context.Symbols, context.IndicatorsFeeds, context.LookbackCandles,
                 new List<IContextInfo> { info });
     }
 

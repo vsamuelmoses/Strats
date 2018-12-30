@@ -19,7 +19,7 @@ namespace FxTrendFollowing.Breakout.Views
         {
             InitializeComponent();
 
-            StrategyVms = CurrencyPair.All().Select(symbol => new CandleStickPatternStrategy(symbol))
+            StrategyVms = CurrencyPair.All().Select(symbol => new ShadowBreakoutStrategy(symbol))
                 .ToList();
 
             //StrategyVms = new List<CandleStickPatternStrategy>() {new CandleStickPatternStrategy(CurrencyPair.AUDCHF)};
@@ -35,6 +35,6 @@ namespace FxTrendFollowing.Breakout.Views
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
 
-        public IEnumerable<CandleStickPatternStrategy> StrategyVms { get; private set; }
+        public IEnumerable<ShadowBreakoutStrategy> StrategyVms { get; private set; }
     }
 }

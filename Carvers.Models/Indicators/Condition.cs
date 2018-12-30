@@ -63,6 +63,7 @@ namespace Carvers.Models.Indicators
     public class Strategy : IStrategy
     {
         public string StrategyName { get; }
+
         public IOrder OpenOrder { get; private set; }
 
         public Strategy(string strategyName)

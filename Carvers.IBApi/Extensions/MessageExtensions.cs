@@ -19,7 +19,7 @@ namespace Carvers.IBApi.Extensions
             return start.AddMilliseconds(epoch * 1000).ToLocalTime();
         }
 
-        public static bool IsForCurrencyPair(this RealTimeBarMessage msg, CurrencyPair pair)
+        public static bool IsForCurrencyPair(this RealTimeBarMessage msg, Symbol pair)
             => pair.UniqueId == msg.RequestId - IBTWS.RT_BARS_ID_BASE;
     }
 
