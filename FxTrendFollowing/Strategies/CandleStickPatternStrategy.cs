@@ -307,7 +307,7 @@ namespace FxTrendFollowing.Strategies
 
                         ctx.Strategy.Close(
                             new SellOrder((BuyOrder)ctx.Strategy.OpenOrder,
-                                new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, ctx.Strategy, exitPrice.USD(),
+                                new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy, exitPrice.USD(),
                                     100000, candle)));
 
                     }
@@ -325,7 +325,7 @@ namespace FxTrendFollowing.Strategies
 
                         ctx.Strategy.Close(
                             new BuyToCoverOrder((ShortSellOrder)ctx.Strategy.OpenOrder,
-                                new OrderInfo(candle.TimeStamp, CurrencyPair.EURGBP, ctx.Strategy,
+                                new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy,
                                     exitPrice.USD(),
                                     100000, candle)));
                     }
@@ -536,7 +536,7 @@ namespace FxTrendFollowing.Strategies
             if (side == Side.ShortSell)
             {
                 var shortSellOrder = new ShortSellOrder(
-                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, entryPrice.USD(),
+                    new OrderInfo(timeStamp, context.Symbols.Single(), context.Strategy, entryPrice.USD(),
                         100000));
                 context.Strategy.Open(shortSellOrder);
                 return new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
@@ -546,7 +546,7 @@ namespace FxTrendFollowing.Strategies
             if (side == Side.Buy)
             {
                 context.Strategy.Open(new BuyOrder(
-                    new OrderInfo(timeStamp, CurrencyPair.EURGBP, context.Strategy, entryPrice.USD(),
+                    new OrderInfo(timeStamp, context.Symbols.Single(), context.Strategy, entryPrice.USD(),
                         100000)));
                 return new CandleStickPatternContext(context.Strategy, context.Symbols, context.IndicatorsFeeds,
                     context.LookbackCandles, context.ContextInfos);
