@@ -104,6 +104,12 @@ namespace Carvers.Models.Indicators
             RecentClosedOrder = order;
         }
 
+        public Price PL(Predicate<IClosedOrder> condition)
+        {
+            return ClosedOrders.Where(order => condition(order))
+                .ProfitLoss();
+        }
+
         public IClosedOrder RecentClosedOrder { get; private set; }
 
         private readonly Subject<IOrder> openOrders;

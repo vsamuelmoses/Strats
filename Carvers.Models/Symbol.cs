@@ -66,6 +66,7 @@ namespace Carvers.Models
 
     public class CurrencyPair : Symbol
     {
+        private static readonly Dictionary<int, CurrencyPair> UniqueIdToCurrencyPair = new Dictionary<int, CurrencyPair>();
         private static readonly Dictionary<Currency, List<CurrencyPair>> Pairs = new Dictionary<Currency, List<CurrencyPair>>();
 
         public static CurrencyPair AUDCAD = new CurrencyPair(Currency.AUD, Currency.CAD);
@@ -109,6 +110,9 @@ namespace Carvers.Models
 
             Pairs[TargetCurrency].Add(this);
 
+
+            UniqueIdToCurrencyPair[UniqueId] = this;
+
         }
 
         public Currency BaseCurrency { get; }
@@ -138,6 +142,12 @@ namespace Carvers.Models
 
             return false;
         }
+
+        public static CurrencyPair Get(int uniqueId)
+        {
+            return UniqueIdToCurrencyPair[uniqueId];
+        }
+
 
         public static List<CurrencyPair> All()
         {

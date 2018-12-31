@@ -21,6 +21,10 @@ namespace Carvers.IBApi.Extensions
 
         public static bool IsForCurrencyPair(this RealTimeBarMessage msg, Symbol pair)
             => pair.UniqueId == msg.RequestId - IBTWS.RT_BARS_ID_BASE;
+
+
+        public static int ToUniqueId(this RealTimeBarMessage msg)
+            => msg.RequestId - IBTWS.RT_BARS_ID_BASE;
     }
 
     public static class IbApiUtility

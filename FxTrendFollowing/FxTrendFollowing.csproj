@@ -119,6 +119,9 @@
     <Compile Include="Views\FxMRMainWindow.xaml.cs">
       <DependentUpon>FxMRMainWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\ShadowBreakoutView.xaml.cs">
+      <DependentUpon>ShadowBreakoutView.xaml</DependentUpon>
+    </Compile>
     <Page Include="Breakout\Views\BreakoutView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -136,6 +139,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Views\FxMRMainWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\ShadowBreakoutView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

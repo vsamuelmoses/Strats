@@ -38,6 +38,7 @@ namespace Carvers.Charting.MultiPane
 {
     public class CreateMultiPaneStockChartsViewModel : ViewModel
     {
+        public Symbol Symbol { get; }
         private IndexRange _xAxisVisibleRange;
         private readonly ICommand _closePaneCommand;
         private bool _isPanEnabled;
@@ -46,10 +47,12 @@ namespace Carvers.Charting.MultiPane
         private IViewportManager _viewportManager;
 
         public CreateMultiPaneStockChartsViewModel(
+            Symbol symbol,
             IObservable<(Candle, IEnumerable<(IIndicator, double)>)> candleFeed,
             IEnumerable<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>> chartFeeds,
             IObservable<IEvent> eventsFeed = null)
         {
+            Symbol = symbol;
             ZoomModeCommand = new ActionCommand(SetZoomMode);
             PanModeCommand = new ActionCommand(SetPanMode);
             ZoomExtentsCommand = new ActionCommand(ZoomExtends);

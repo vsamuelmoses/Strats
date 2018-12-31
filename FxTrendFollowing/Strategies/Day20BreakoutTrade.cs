@@ -93,7 +93,7 @@ namespace FxTrendFollowing.Strategies
                         .OfType<MovingAverage>()
                         .Select(i => ((IIndicator)i, i.Value))));
 
-            TraderChart = new CreateMultiPaneStockChartsViewModel(priceChart,
+            TraderChart = new CreateMultiPaneStockChartsViewModel(interestedPairs.Single(), priceChart,
                  new List<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>>() { }, eventsFeed);
         }
 

@@ -1,0 +1,69 @@
+﻿<Window x:Class="FxTrendFollowing.Views.ShadowBreakoutView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FxTrendFollowing.Views"
+        xmlns:multiPane="clr-namespace:Carvers.Charting.MultiPane;assembly=Carvers.Charting"
+        mc:Ignorable="d"
+        Title="ShadowBreakoutView" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="4*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+            <Button Content="Start" Command="{Binding StartCommand}"></Button>
+            <Button Content="Stop" Command="{Binding StopCommand}"></Button>
+            <StackPanel DataContext="{Binding Reporters.SummaryReport}">
+                <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Status}" />
+            <DataGrid x:Name="symbolGrid"
+                      IsReadOnly="True"
+                      ItemsSource="{Binding InstrumentCharts}" AutoGenerateColumns="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Instrument" Binding="{Binding Symbol}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+
+        <TabControl Grid.Column="1"
+                    SelectedItem="{Binding ElementName=symbolGrid, Path=SelectedItem}"
+                    ItemsSource="{Binding InstrumentCharts}">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Symbol}"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <multiPane:CreateMultiPaneStockCharts DataContext="{Binding Path=.}"/>
+
+                    </Grid>
+
+                    <!--<DockPanel>
+                        --><!--<Grid DockPanel.Dock="Top">
+                            <StackPanel Grid.Column="2" DataContext="{Binding Reporters.SummaryReport}">
+                                <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                                <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                                <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                                <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+                            </StackPanel>
+                        </Grid>-->
+                        <!--<TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />-->
+                        <!--<charting:TraderView
+                            DataContext="{Binding ChartVm}"/>-->
+
+                        <!--<charting:TraderView DataContext="{Binding ChartVm}"></charting:TraderView>--><!--
+                                            </DockPanel>-->
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+
+    </Grid>
+</Window>

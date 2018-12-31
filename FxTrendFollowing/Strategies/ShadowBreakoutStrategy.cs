@@ -54,7 +54,7 @@ namespace FxTrendFollowing.Strategies
             var dailyfeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromDays(1)).Stream;
             var shadowCandleFeed = new ShadowCandleFeed(dailyfeed, 2);
 
-            var candleFeed = hourlyFeed;
+            var candleFeed = minuteFeed;
             var context = new ShadowBreakoutContext(Strategy, interestedSymbols, new List<IIndicatorFeed> { shadowCandleFeed },
                 new Lookback(2, new ConcurrentQueue<Candle>()),
                 interestedSymbols.Select(symbol => new TargetProfitInfo(symbol, new AvgCalculator(7), new AvgCalculator(7))).ToList());
@@ -106,7 +106,7 @@ namespace FxTrendFollowing.Strategies
                 );
 
             
-            TraderChart = new CreateMultiPaneStockChartsViewModel(priceChart,
+            TraderChart = new CreateMultiPaneStockChartsViewModel(Instrument, priceChart,
                  new List<Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>>()
                  {
                      new Dictionary<IIndicator, IObservable<(IIndicator, DateTime, double)>>()
@@ -217,7 +217,7 @@ namespace FxTrendFollowing.Strategies
 
         private static Func<FuncCondition<ShadowBreakoutContext>> didPriceHitSR = () =>
             new FuncCondition<ShadowBreakoutContext>(
-                onSuccess: didPriceHitSR,
+                onSuccess: exitCondition,
                 onFailure: didPriceHitSR,
                 predicates: new List<Func<ShadowBreakoutContext, PredicateResult>>()
                 {
@@ -239,9 +239,10 @@ namespace FxTrendFollowing.Strategies
                             if(alreadyTradedThisHour)
                                 return PredicateResult.Fail;
 
-
-                            var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.High);
-                            var isSell = ctx.LastCandle.PassedThroughPrice(shadowCandle.Low);
+                            var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.High)
+                                        && ctx.LastCandle.Open < shadowCandle.High;
+                            var isSell = ctx.LastCandle.PassedThroughPrice(shadowCandle.Low)
+                                         && ctx.LastCandle.Open > shadowCandle.Low;
 
                             return (isBuy || isSell).ToPredicateResult();
 
@@ -251,9 +252,6 @@ namespace FxTrendFollowing.Strategies
                 onSuccessAction: ctx =>
                 {
                     {
-                        if (ctx.Strategy.OpenOrder != null)
-                            return ctx;
-
                         var shadowCandle = ctx.IndicatorsFeeds.OfType<ShadowCandleFeed>().Single().ShadowCandle;
 
                         var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.High);
@@ -262,67 +260,73 @@ namespace FxTrendFollowing.Strategies
                         var side = isBuy ? Side.Buy : Side.ShortSell;
                         var entryPrice = isBuy ? shadowCandle.High : shadowCandle.Low;
 
-
-                        var targetProfitInfo = ctx.ContextInfos.OfType<TargetProfitInfo>()
-                            .Single(info => ctx.Symbols.Contains(info.Symbol));
-
-
-
-                        if (isBuy && targetProfitInfo.BuyTpCalculator.Average.HasValue)
-                        {
-                            var candle = ctx.LastCandle;
-                            ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.High, Side.Buy);
-
-                            var exitPrice = ctx.LastCandle.Close;
-
-                            if (ctx.LastCandle.High - shadowCandle.High >
-                                targetProfitInfo.BuyTpCalculator.Average.Value)
-                                exitPrice = (shadowCandle.High + targetProfitInfo.BuyTpCalculator.Average.Value);
-
-                            ctx.Strategy.Close(
-                                new SellOrder((BuyOrder) ctx.Strategy.OpenOrder,
-                                    new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy, exitPrice.USD(),
-                                        100000, candle)));
-
-                        }
-
-                        if (isSell && targetProfitInfo.SellTpCalculator.Average.HasValue)
-                        {
-                            var candle = ctx.LastCandle;
-                            ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.Low,
-                                Side.ShortSell);
-
-                            var exitPrice = ctx.LastCandle.Close;
-
-                            if (shadowCandle.Low - ctx.LastCandle.Low > targetProfitInfo.SellTpCalculator.Average.Value)
-                                exitPrice = (shadowCandle.Low - targetProfitInfo.SellTpCalculator.Average.Value);
-
-                            ctx.Strategy.Close(
-                                new BuyToCoverOrder((ShortSellOrder) ctx.Strategy.OpenOrder,
-                                    new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy,
-                                        exitPrice.USD(),
-                                        100000, candle)));
-                        }
-
+                        double? stopLoss = null;
                         if (isBuy)
-                        {
-                            var profit = ctx.LastCandle.High - entryPrice;
+                            stopLoss = entryPrice - ctx.LookbackCandles.Candles.First().Low;
+                        else if(isSell)
+                            stopLoss = ctx.LookbackCandles.Candles.First().High - entryPrice;
 
-                            if (profit > 0)
-                            {
-                                targetProfitInfo.BuyTpCalculator.Add(profit);
-                            }
-                        }
+                        ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, entryPrice, side)
+                            .AddContextInfo(new TPSLInfo(0.0010, stopLoss.Value, shadowCandle));
 
-                        if (isSell)
-                        {
-                            var profit = entryPrice - ctx.LastCandle.Low;
+                        //var targetProfitInfo = ctx.ContextInfos.OfType<TargetProfitInfo>()
+                        //    .Single(info => ctx.Symbols.Contains(info.Symbol));
 
-                            if (profit > 0)
-                            {
-                                targetProfitInfo.SellTpCalculator.Add(profit);
-                            }
-                        }
+                        //if (isBuy && targetProfitInfo.BuyTpCalculator.Average.HasValue)
+                        //{
+                        //    var candle = ctx.LastCandle;
+                        //    ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.High, Side.Buy);
+
+                        //    var exitPrice = ctx.LastCandle.Close;
+
+                        //    if (ctx.LastCandle.High - shadowCandle.High >
+                        //        targetProfitInfo.BuyTpCalculator.Average.Value)
+                        //        exitPrice = (shadowCandle.High + targetProfitInfo.BuyTpCalculator.Average.Value);
+
+                        //    ctx.Strategy.Close(
+                        //        new SellOrder((BuyOrder) ctx.Strategy.OpenOrder,
+                        //            new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy, exitPrice.USD(),
+                        //                100000, candle)));
+
+                        //}
+
+                        //if (isSell && targetProfitInfo.SellTpCalculator.Average.HasValue)
+                        //{
+                        //    var candle = ctx.LastCandle;
+                        //    ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.Low,
+                        //        Side.ShortSell);
+
+                        //    var exitPrice = ctx.LastCandle.Close;
+
+                        //    if (shadowCandle.Low - ctx.LastCandle.Low > targetProfitInfo.SellTpCalculator.Average.Value)
+                        //        exitPrice = (shadowCandle.Low - targetProfitInfo.SellTpCalculator.Average.Value);
+
+                        //    ctx.Strategy.Close(
+                        //        new BuyToCoverOrder((ShortSellOrder) ctx.Strategy.OpenOrder,
+                        //            new OrderInfo(candle.TimeStamp, ctx.Symbols.Single(), ctx.Strategy,
+                        //                exitPrice.USD(),
+                        //                100000, candle)));
+                        //}
+
+                        //if (isBuy)
+                        //{
+                        //    var profit = ctx.LastCandle.High - entryPrice;
+
+                        //    if (profit > 0)
+                        //    {
+                        //        targetProfitInfo.BuyTpCalculator.Add(profit);
+                        //    }
+                        //}
+
+                        //if (isSell)
+                        //{
+                        //    var profit = entryPrice - ctx.LastCandle.Low;
+
+                        //    if (profit > 0)
+                        //    {
+                        //        targetProfitInfo.SellTpCalculator.Add(profit);
+                        //    }
+                        //}
                     }
 
                     return ctx;
@@ -388,7 +392,7 @@ namespace FxTrendFollowing.Strategies
                     var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle, 1);
                     var entryCandle = ctx.ContextInfos.OfType<TPSLInfo>().Single().ShadowCandle;
 
-                    Price exitPrice = ctx.LastCandle.Ohlc.Close;
+                    Price exitPrice = null;
 
 
                     var tpslInfo = ctx.ContextInfos.OfType<TPSLInfo>().Single();
@@ -404,6 +408,10 @@ namespace FxTrendFollowing.Strategies
 
                         if (profit >= 0.0010)
                             exitPrice = (ctx.Strategy.OpenOrder.OrderInfo.Price.Value + 0.0010).USD();
+
+                        if (ctx.LastCandle.TimeStamp.Hour != ctx.Strategy.OpenOrder.OrderInfo.TimeStamp.Hour)
+                            exitPrice = ctx.LastCandle.Ohlc.Close;
+
                     }
 
                     else if (ctx.Strategy.OpenOrder is ShortSellOrder)
@@ -419,11 +427,14 @@ namespace FxTrendFollowing.Strategies
                         if (profit >= 0.0010)
                             exitPrice = (ctx.Strategy.OpenOrder.OrderInfo.Price.Value - 0.0010).USD();
 
+                        if (ctx.LastCandle.TimeStamp.Hour != ctx.Strategy.OpenOrder.OrderInfo.TimeStamp.Hour)
+                            exitPrice = ctx.LastCandle.Ohlc.Close;
                     }
+                    
 
                     if (ctx.Strategy.OpenOrder is BuyOrder)
                     {
-                    
+
                         var candle = ctx.LastCandle;
                         //var closePrice = ctx.LastCandle.ClosedAboveHigh(openTimeShadow) ? openTimeShadow.High : candle.Close;
                         ctx.Strategy.Close(
@@ -432,8 +443,7 @@ namespace FxTrendFollowing.Strategies
                                     100000, candle)));
                         return ctx;
                     }
-
-                    if (ctx.Strategy.OpenOrder is ShortSellOrder)
+                    else if (ctx.Strategy.OpenOrder is ShortSellOrder)
                     {
                         var candle = ctx.LastCandle;
                         ctx.Strategy.Close(
