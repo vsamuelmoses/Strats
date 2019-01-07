@@ -46,17 +46,18 @@ namespace FxTrendFollowing.Breakout.ViewModels
 
             var nextCondition = MovingAveragesPerfectOrder.Strategy;
 
-            var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
+            var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)))
+                .Select(c => new Timestamped<Candle>(c.TimeStamp, c));
             var candleFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
 
-            var ma10Day = new MovingAverageFeed(Indicators.SMA10, candleFeed, candle => candle.Close, 10);
-            var ma20Day = new MovingAverageFeed(Indicators.SMA20, candleFeed, candle => candle.Close, 20);
-            var ma50Day = new MovingAverageFeed(Indicators.SMA50, candleFeed, candle => candle.Close, 50);
-            var ma100Day = new MovingAverageFeed(Indicators.SMA100, candleFeed, candle => candle.Close, 100);
-            var ma200Day = new MovingAverageFeed(Indicators.SMA200, candleFeed, candle => candle.Close, 200);
+            var ma10Day = new MovingAverageFeed(Indicators.SMA10, candleFeed.Select(c => c.Val), candle => candle.Close, 10);
+            var ma20Day = new MovingAverageFeed(Indicators.SMA20, candleFeed.Select(c => c.Val), candle => candle.Close, 20);
+            var ma50Day = new MovingAverageFeed(Indicators.SMA50, candleFeed.Select(c => c.Val), candle => candle.Close, 50);
+            var ma100Day = new MovingAverageFeed(Indicators.SMA100, candleFeed.Select(c => c.Val), candle => candle.Close, 100);
+            var ma200Day = new MovingAverageFeed(Indicators.SMA200, candleFeed.Select(c => c.Val), candle => candle.Close, 200);
 
 
-            var haFeed = new ShadowCandleFeed(candleFeed, 2);
+            var haFeed = new ShadowCandleFeed(Paths.ShadowCandlesFor(interestedPairs.Single(), "1D"), candleFeed, 2);
 
             var context = new SMAContext(Strategy, new List<IIndicator>
             {
@@ -71,7 +72,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
                     Tuple.Create)
                 .Subscribe(tup =>
                 {
-                    var candle = tup.Item1;
+                    var candle = tup.Item1.Val;
                     Status = $"Executing {candle.TimeStamp}";
                     var newcontext = new SMAContext(context.Strategy, new List<IIndicator> { tup.Item2, tup.Item3, tup.Item4, tup.Item5, tup.Item6, tup.Item7 }, candle);
                     (nextCondition, context) = nextCondition().Evaluate(newcontext, candle);

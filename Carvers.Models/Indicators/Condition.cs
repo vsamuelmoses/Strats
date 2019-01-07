@@ -22,12 +22,12 @@ namespace Carvers.Models.Indicators
             if (lb.Period == lb.Count)
             {
                 Candle none;
-                lb.Candles.TryDequeue(out none);
+                lb.Candles.RemoveAt(0);
             }
 
             Debug.Assert(lb.Candles.All(c => c.TimeStamp != candle.TimeStamp));
 
-            lb.Candles.Enqueue(candle);
+            lb.Candles.Add(candle);
             return new Lookback(lb.Period, lb.Candles);
         }
 
@@ -37,7 +37,7 @@ namespace Carvers.Models.Indicators
 
     public class Lookback
     {
-        public Lookback(int period, ConcurrentQueue<Candle> candles)
+        public Lookback(int period, List<Candle> candles)
         {
             Candles = candles;
             HighCandle = candles.OrderBy(candle => candle.Ohlc.High).LastOrDefault();
@@ -45,8 +45,8 @@ namespace Carvers.Models.Indicators
             Period = period;
         }
 
-        public int Count => Candles.Count;
-        public ConcurrentQueue<Candle> Candles { get; }
+        public int Count => Candles.Count();
+        public List<Candle> Candles { get; }
         public Candle HighCandle { get; }
         public Candle LowCandle { get; }
         public Candle LastCandle => Candles.LastOrDefault();

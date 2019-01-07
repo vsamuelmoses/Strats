@@ -47,17 +47,19 @@ namespace FxTrendFollowing.Strategies
 
             var nextCondition = Day20BreakoutTrade.Strategy;
 
-            var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)));
+            var minuteFeed = Ibtws.RealTimeBarStream.Select(msg => MessageExtensions.ToCandle(msg, TimeSpan.FromMinutes(1)))
+                .Select(c => new Timestamped<Candle>(c.TimeStamp, c));
             var candleFeed =new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
 
             var context = new Day20BeakoutTradeContext(Strategy, Enumerable.Empty<IIndicator>(), 
-                new Lookback(25, new ConcurrentQueue<Candle>()),
+                new Lookback(25, new List<Candle>()),
                 Enumerable.Empty<IContextInfo>());
 
             //TODO: for manual feed, change the candle span
             candleFeed
-                .Subscribe(candle =>
+                .Subscribe(c =>
                 {
+                    var candle = c.Val;
                     Status = $"Executing {candle.TimeStamp}";
                     var newcontext = new Day20BeakoutTradeContext(context.Strategy,
                         Enumerable.Empty<IIndicator>(), context.LookbackCandles.Add(candle), context.ContextInfos);
@@ -86,7 +88,7 @@ namespace FxTrendFollowing.Strategies
                     .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
 
             var priceChart = candleFeed.Zip(_contextStream,
-                (candle, ctx) => (candle,
+                (candle, ctx) => (candle.Val,
                     ctx.Indicators
                         .Where(i => i.Key != Indicators.CandleBodySma5)
                         .Select(i => i.Value)

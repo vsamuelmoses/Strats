@@ -22,13 +22,13 @@ namespace Carvers.Charting.App
             var feed = new FileFeedService<Candle>(Paths.SampleCsvData,
                 str => CsvToModelCreators.CsvToFx1MinCandle(str.AsCsv()));
 
-            var agg = new AggreagateCandleFeed(feed.Stream, TimeSpan.FromHours(1));
+            var agg = new AggreagateCandleFeed(feed.Stream.Select(c => new Timestamped<Candle>(c.TimeStamp, c)), TimeSpan.FromHours(1));
 
-            RealtimeCandleStickViewModel = new TraderViewModel(agg.Stream, 
+            RealtimeCandleStickViewModel = new TraderViewModel(agg.Stream.Select(c => c.Val), 
                 eventsFeed:agg
                     .Stream
-                    .Where(c => c.TimeStamp.Hour == 9)
-                    .Select(c => new MarketOpeningIndicator(c.TimeStamp, c)));
+                    .Where(c => c.Val.TimeStamp.Hour == 9)
+                    .Select(c => new MarketOpeningIndicator(c.Val.TimeStamp, c.Val)));
 
             DataContext = this;
         }

@@ -8,54 +8,90 @@ namespace Carvers.Models.DataReaders
 {
     public class AggreagateCandleFeed
     {
-        private Subject<Candle> stream;
-        private Candle lastCandle;
+        private Subject<Timestamped<Candle>> stream;
+        private Candle aggregateCandle;
+        private Candle lastPublishedCandle = Candle.Null;
+        private Candle lastSourceCandle;
 
-        public AggreagateCandleFeed(IObservable<Candle> candleStream, TimeSpan span)
+        public AggreagateCandleFeed(IObservable<Timestamped<Candle>> candleStream, TimeSpan span)
         {
-            stream = new Subject<Candle>();
+            Predicate<DateTimeOffset> startTime = null;
+            stream = new Subject<Timestamped<Candle>>();
+
+            if (span == TimeSpan.FromDays(1))
+            {
+                startTime = time => time.Hour == 0 && time.Minute == 0 && time.Second == 0;
+            }
+            else if (span == TimeSpan.FromHours(1))
+            {
+                startTime = time => time.Minute == 0 && time.Second == 0;
+            }
+            else if (span == TimeSpan.FromMinutes(1))
+            {
+                startTime = time => time.Second == 0;
+            }
+            else
+            {
+                throw new Exception("Aggregate span not supported");
+            }
 
             candleStream
-                .Subscribe(candle =>
+                .Subscribe(tsdCandle =>
                 {
-                    if (lastCandle == null)
+                    var timestamp = tsdCandle.Timestamp;
+                    var candle = tsdCandle.Val;
+
+                    if (lastSourceCandle != null && lastSourceCandle == candle
+                        || candle == null)
                     {
-                        if(candle.TimeStamp.Second == 0 && candle.TimeStamp.Minute == 0)
-                            lastCandle = candle;
+                        Publish(timestamp, lastPublishedCandle);
+                        return;
+                    }
+
+                    lastSourceCandle = candle;
+
+                    if (aggregateCandle == null)
+                    {
+                        //if(candle.TimeStamp.Second == 0 && candle.TimeStamp.Minute == 0)
+                        if(startTime(candle.TimeStamp))
+                            aggregateCandle = candle;
+
+                        Publish(timestamp, lastPublishedCandle);
 
                         return;
                     }
 
-                    if (candle.TimeStamp < (lastCandle.TimeStamp + span))
+                    if (candle.TimeStamp < (aggregateCandle.TimeStamp + span))
                     {
-                        lastCandle = lastCandle.Add(candle);
+                        aggregateCandle = aggregateCandle.Add(candle);
+                        Publish(timestamp, lastPublishedCandle);
                     }
 
-                    if (candle.TimeStamp - lastCandle.TimeStamp == span)
+                    if (candle.TimeStamp - aggregateCandle.TimeStamp == span)
                     {
-                        lastCandle = lastCandle.Add(candle);
-                        Thread.Sleep(20);
-                        stream.OnNext(lastCandle);
+                        aggregateCandle = aggregateCandle.Add(candle);
+                        //Thread.Sleep(20);
+                        Publish(timestamp, aggregateCandle);
                         Debug.Assert(candle.TimeStamp.Minute % span.TotalMinutes == 0 && candle.TimeStamp.Second == 0);
-                        lastCandle = candle;
+                        aggregateCandle = candle;
                     }
-                    else if (candle.TimeStamp - lastCandle.TimeStamp > span)
+                    else if (candle.TimeStamp - aggregateCandle.TimeStamp > span)
                     {
-                        Thread.Sleep(20);
+                        //Thread.Sleep(20);
 
-                        stream.OnNext(lastCandle);
-                        if (candle.TimeStamp.Second == 0 && candle.TimeStamp.Minute == 0)
-                            lastCandle = candle;
-                        else
-                        {
-                            lastCandle = null;
-                        }
+                        Publish(timestamp, aggregateCandle);
+                        aggregateCandle = startTime(candle.TimeStamp) ? candle : null;
                     }
 
                 });
         }
 
-        public IObservable<Candle> Stream => stream;
+        private void Publish(DateTimeOffset ts, Candle candle)
+        {
+            lastPublishedCandle = candle;
+            stream.OnNext(new Timestamped<Candle>(ts, lastPublishedCandle));
+        }
 
+        public IObservable<Timestamped<Candle>> Stream => stream;
     }
 }

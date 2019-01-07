@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Security.Cryptography;
 using System.Windows.Forms;
+using Carvers.Infra;
+using Carvers.Models.DataReaders;
 using Carvers.Models.Extensions;
 
 namespace Carvers.Models.Indicators
@@ -13,6 +17,20 @@ namespace Carvers.Models.Indicators
     {
         string Description { get; }
         bool HasValidValue { get; }
+    }
+
+    public class TimestampedIndicator<T> : Timestamped<T>, IIndicator
+        where T : IIndicator
+    {
+        public DateTimeOffset Timestamp { get; }
+
+        public TimestampedIndicator(DateTimeOffset timestamp, T val) : base(timestamp, val)
+        {
+            Timestamp = timestamp;
+        }
+
+        public string Description => Val.Description;
+        public bool HasValidValue => Val.HasValidValue;
     }
 
     public class CustomIndicator : IIndicator
@@ -164,52 +182,66 @@ namespace Carvers.Models.Indicators
 
 
     public class ShadowCandleFeed
-        : IIndicatorFeed<ShadowCandle>
+        : IIndicatorFeed<TimestampedIndicator<ShadowCandle>>
     {
+        public FileInfo File { get; }
         private readonly int _lookbackCount;
-        private readonly Subject<ShadowCandle> stream;
+        private readonly Subject<TimestampedIndicator<ShadowCandle>> stream;
         private readonly List<ShadowCandle> lookback;
-        public ShadowCandleFeed(IObservable<Candle> candleStream, int lookbackCount)
+        public ShadowCandleFeed(FileInfo file, IObservable<Timestamped<Candle>> candleStream, int lookbackCount)
         {
+            File = file;
+            _writer = new FileWriter(File.FullName, 1);
             _lookbackCount = lookbackCount;
-            stream = new Subject<ShadowCandle>();
+            stream = new Subject<TimestampedIndicator<ShadowCandle>>();
             lookback = new List<ShadowCandle>();
 
             ShadowCandle = ShadowCandle.Null;
 
-            candleStream.Subscribe(candle =>
+            candleStream.Subscribe(feed =>
             {
-                if (prevCandle == Candle.Null)
-                    prevCandle = candle;
-                
-                var isgreen = (candle.High > prevCandle.High && candle.Low > prevCandle.Low);
+                var candle = feed.Val;
+
+                if (candle == null)
+                {
+                    stream.OnNext(new TimestampedIndicator<ShadowCandle>(feed.Timestamp, ShadowCandle));
+                    return;
+                }
+
+                if (prevShadowCandle == Candle.Null)
+                    prevShadowCandle = candle;
+
+                if ((prevCandle != null && prevCandle == candle)
+                    || candle == null)
+                {
+                    stream.OnNext(new TimestampedIndicator<ShadowCandle>(feed.Timestamp, ShadowCandle));
+                    return;
+                }
+
+                prevCandle = candle;
+
+                var isgreen = (candle.High > prevShadowCandle.High && candle.Low > prevShadowCandle.Low);
 
                 //if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
-                if (candle.Low > prevCandle.Low && candle.High < prevCandle.High)
+                if (candle.Low > prevShadowCandle.Low && candle.High < prevShadowCandle.High)
                 {
                     lookback.Add(ShadowCandle);
                     if (lookback.Count > lookbackCount)
                         lookback.RemoveAt(0);
 
-
-                    stream.OnNext(ShadowCandle);
+                    stream.OnNext(new TimestampedIndicator<ShadowCandle>(feed.Timestamp, ShadowCandle));
                 }
                 else
                 {
-                    prevCandle = candle;
+                    prevShadowCandle = candle;
 
                     int supportStrength = 0;
                     int resistanceStrength = 0;
 
-                    var high = prevCandle.High;
-                    var low = prevCandle.Low;
-                    if (ShadowCandle != null)
-                    {
-                        resistanceStrength = Math.Abs(ShadowCandle.High - candle.High) > 20d ? 1 : 2;
-                        supportStrength = Math.Abs(ShadowCandle.Low - candle.Low) > 20d ? 1 : 2;
-                    }
-
-                    ShadowCandle = new ShadowCandle(new Ohlc(prevCandle.Open, high, low, prevCandle.Close, prevCandle.Ohlc.Volume),
+                    var high = prevShadowCandle.High;
+                    var low = prevShadowCandle.Low;
+                    
+                    ShadowCandle = new ShadowCandle(new Ohlc(prevShadowCandle.Open, high, low, prevShadowCandle.Close, prevShadowCandle.Ohlc.Volume),
                         candle.TimeStamp, candle.Span, supportStrength, resistanceStrength);
                     ShadowCandle.IsGreen = isgreen;
 
@@ -217,16 +249,21 @@ namespace Carvers.Models.Indicators
                     if (lookback.Count > lookbackCount)
                         lookback.RemoveAt(0);
 
-                    stream.OnNext(ShadowCandle);
+                    stream.OnNext(new TimestampedIndicator<ShadowCandle>(feed.Timestamp, ShadowCandle));
                 }
+
             });
         }
 
         private Candle prevCandle = Candle.Null;
+        private Candle prevShadowCandle = Candle.Null;
+        private readonly FileWriter _writer;
+
+        public Timestamped<ShadowCandle> TsShadowCandle { get; private set; }
         public ShadowCandle ShadowCandle { get; private set; }
         public IEnumerable<ShadowCandle> Lookback => lookback;
         
-        public IObservable<ShadowCandle> Stream => stream;
+        public IObservable<TimestampedIndicator<ShadowCandle>> Stream => stream;
 
     }
     public class HeikinAshiCandleFeed

@@ -63,8 +63,6 @@ namespace Carvers.IB.App
             PlaceOrderCommand = new RelayCommand(
                 _ => PlaceOrder(),
                 _ => ibtws.IsConnected);
-
-
         }
 
         private void PlaceOrder()

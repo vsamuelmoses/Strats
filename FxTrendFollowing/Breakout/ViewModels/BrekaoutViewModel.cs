@@ -9,6 +9,7 @@ using Carvers.Models.Events;
 using Carvers.Models.Indicators;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
@@ -29,7 +30,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] {CurrencyPair.EURAUD};
 
 
-            IRule ruleChain = new LookbackEvaluator(new Lookback(30, new ConcurrentQueue<Candle>()));
+            IRule ruleChain = new LookbackEvaluator(new Lookback(30, new List<Candle>()));
             //TODO: for manual feed, change the candle span
             Ibtws.RealTimeBarStream.Subscribe(msg =>
             {
@@ -77,7 +78,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] {CurrencyPair.GBPUSD};
 
             Strategy = new Strategy("MomentumBO");
-            var context = new StrategyContext(Strategy, new Lookback(5 * 480, new ConcurrentQueue<Candle>()),
+            var context = new StrategyContext(Strategy, new Lookback(5 * 480, new List<Candle>()),
                 ImmutableList.Create<IContextInfo>(new[] {new EmptyContext()}));
             var nextCondition = BOStrategyWithFractals.Strategy;
 

@@ -67,6 +67,7 @@
     <Compile Include="DailyCandle.cs" />
     <Compile Include="DataReaders\AggreagateCandleFeed.cs" />
     <Compile Include="DataReaders\CsvToModelCreators.cs" />
+    <Compile Include="DataReaders\FileWriter.cs" />
     <Compile Include="DirectoryUniverse.cs" />
     <Compile Include="Events\DateTimeEvent.cs" />
     <Compile Include="Events\OrderExecutedEvent.cs" />

@@ -36,7 +36,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var interestedPairs = new[] { CurrencyPair.GBPUSD };
 
             Strategy = new Strategy("Simple Breakout");
-            var context = new StrategyContext(Strategy, new Lookback(4 * 60, new ConcurrentQueue<Candle>()),
+            var context = new StrategyContext(Strategy, new Lookback(4 * 60, new List<Candle>()),
                 ImmutableList.Create<IContextInfo>(new[] { new EmptyContext() }));
 
             var nextCondition = SimpleBreakoutStrategy.Strategy;

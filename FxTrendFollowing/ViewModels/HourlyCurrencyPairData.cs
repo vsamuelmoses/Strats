@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reactive.Subjects;
 using Carvers.IBApi.Extensions;
 using Carvers.Models;
+using Carvers.Models.DataReaders;
 using Carvers.Models.Extensions;
 using IBSampleApp.messages;
 

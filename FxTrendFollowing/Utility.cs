@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using Carvers.Infra.Extensions;
 using Carvers.Models;
+using Carvers.Models.Indicators;
 
 namespace FxTrendFollowing
 {
@@ -147,16 +148,16 @@ namespace FxTrendFollowing
                 case CurrencyPair pair:
                 {
                     if (dateTime.Year == 2018)
-                        return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                        return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
                             $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}02.csv");
 
-                    return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                    return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
                         $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
                 }
 
                 case Index index:
                 {
-                    return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                    return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
                         $"{index.ToString()}_M1_{dateTime.Year.ToString()}.csv");
                 }
 
@@ -167,7 +168,7 @@ namespace FxTrendFollowing
 
         public static string FxEURUSDFilePathGetter(DateTimeOffset dateTime)
         {
-                return Path.Combine(Paths.Data, dateTime.Year.ToString(),
+                return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
                     $"DAT_MT_EURUSD_M1_{dateTime.Year.ToString()}02.csv");
         }
 
@@ -185,10 +186,26 @@ namespace FxTrendFollowing
 
     public static class Paths
     {
-        public const string IBData = @"D:\Work\SykesStrategies\FxTrendFollowing\IBData";
+        public const string IBData = Data + "IBData\\";
         //public const string Data = @"C:\Users\Senior\Documents\Strats\FxTrendFollowing";
-        public const string Data = @"..\..\";
-        public const string FxStrenghts = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data";
-        public const string FxStrenghtsAll = @"D:\Work\SykesStrategies\FxTrendFollowing\FxStrength.Data\All.csv";
+        public const string HistoricalData = @"..\..\";
+        public const string Data = @"..\..\Data\";
+        public const string FxStrenghts = Data + "FxStrength.Data";
+        public const string FxStrenghtsAll = Data + @"FxStrength.Data\All.csv";
+        public const string StrategyLogs = Data + "Strategies\\";
+        public static FileInfo StrategySummaryFile(Strategy strategy, Symbol symbol)
+        {
+            return new FileInfo(StrategyLogs + $"{strategy.StrategyName}\\{symbol}.txt");
+        }
+
+        public static FileInfo IBDataCandlesFor(Symbol instrument, string span)
+        {
+            return new FileInfo(IBData + $@"{instrument}.{span}.csv");
+        }
+
+        public static FileInfo ShadowCandlesFor(Symbol instrument, string span)
+        {
+            return new FileInfo(IBData + $@"ShadowCandles\{instrument}.Shadow.{span}.csv");
+        }
     }
 }

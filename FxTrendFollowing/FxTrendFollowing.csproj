@@ -112,7 +112,6 @@
     <Compile Include="Utility.cs" />
     <Compile Include="ViewModels\AllCurrencyStrength.cs" />
     <Compile Include="ViewModels\CSIFeedViewModel.cs" />
-    <Compile Include="ViewModels\FileWriter.cs" />
     <Compile Include="ViewModels\HourlyCurrencyPairData.cs" />
     <Compile Include="ViewModels\FxMRViewModel.cs" />
     <Compile Include="ViewModels\SingleCurrencyStrength.cs" />

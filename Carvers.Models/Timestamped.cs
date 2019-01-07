@@ -5,9 +5,9 @@ namespace Carvers.Models
 
     public class Timestamped<T>
     {
-        public Timestamped(DateTimeOffset dto, T val)
+        public Timestamped(DateTimeOffset timestamp, T val)
         {
-            Timestamp = dto;
+            Timestamp = timestamp;
             Val = val;
         }
 

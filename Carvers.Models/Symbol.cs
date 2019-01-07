@@ -58,6 +58,17 @@ namespace Carvers.Models
             Indices.Add(this);
         }
 
+        public override int GetHashCode()
+        {
+            return Val.GetHashCode() * 13;
+        }
+
+        public override bool Equals(object other)
+        {
+            return other is Index otherKeys &&
+                   this.Val == otherKeys.Val;
+        }
+
         public static Index Get(string symbol)
             => Indices.Single(i => i.Val == symbol);
     }

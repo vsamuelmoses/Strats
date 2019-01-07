@@ -62,7 +62,7 @@ namespace Carvers.Charting.ViewModels
             IObservable<DateTimeEvent<Price>> profitLossFeed = null,
             IObservable<IEvent> eventsFeed = null)
         {
-            lb = new Lookback(10, new ConcurrentQueue<Candle>());
+            lb = new Lookback(10, new List<Candle>());
 
             AnnotationCollection = new AnnotationCollection();
 
