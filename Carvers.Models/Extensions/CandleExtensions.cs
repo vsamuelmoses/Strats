@@ -116,6 +116,9 @@ namespace Carvers.Models.Extensions
 
         public static bool ClosedBelowLow(this Candle candle1, Candle candle2)
             => candle1.Ohlc.Close < candle2.Ohlc.Low;
+
+        public static double MiddlePoint(this Candle candle)
+            => candle.CandleLength()/2 + candle.Low;
     }
 
 

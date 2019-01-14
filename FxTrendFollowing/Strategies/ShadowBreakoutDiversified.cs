@@ -30,14 +30,16 @@ namespace FxTrendFollowing.Strategies
     {
         private string _summary;
 
-        public SymbolChartsViewModel(Symbol instrument, CreateMultiPaneStockChartsViewModel chart)
+        public SymbolChartsViewModel(Symbol instrument, CreateMultiPaneStockChartsViewModel chart, StrategyInstrumentSummaryReport summaryReport)
         {
             Instrument = instrument;
             Chart = chart;
+            SummaryReport = summaryReport;
         }
 
         public Symbol Instrument { get; }
         public CreateMultiPaneStockChartsViewModel Chart { get; private set; }
+        public StrategyInstrumentSummaryReport SummaryReport { get; }
 
         public string Summary
         {
@@ -52,6 +54,9 @@ namespace FxTrendFollowing.Strategies
 
     public class ShadowBreakoutDiversified : ViewModel
     {
+        private static List<double> prevShStrengthHigh = new List<double>();
+
+
         private string _status;
         private TraderViewModel _chartVm;
         private CreateMultiPaneStockChartsViewModel _traderChart;
@@ -67,8 +72,8 @@ namespace FxTrendFollowing.Strategies
             //Ibtws = new IBTWS(); //var barspan = TimeSpan.FromSeconds(5);
 
             Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 12, 10, 0, 0, 0, TimeSpan.Zero));
+                new DateTimeOffset(2018, 01, 01, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2018, 12, 10, 0, 0, 0, TimeSpan.Zero));
 
             //new DateTimeOffset(2017, 01, 31, 0, 0, 0, TimeSpan.Zero));
             var barspan = TimeSpan.FromMinutes(1);
@@ -111,122 +116,13 @@ namespace FxTrendFollowing.Strategies
                 //var shadowCandleFile = new FileWriter(Paths.ShadowCandlesFor(instrument, "1D").FullName, 1);
                 //shadowCandleFeed.Stream.Subscribe(candle => shadowCandleFile.Write(candle.ToCsv()));
 
+                var shadowStrength = new ShadowStrengthFeed(shadowCandleFeed.Stream, hourlyFeed);
+
                 var candleFeed = hourlyFeed;
-
-
-                var buyStrengthCalculator = new AvgCalculator(24);
-                var sellStrengthCalculator = new AvgCalculator(24);
-
-                var avgSellStrength = 0d;
-                var avgBuyStrength = 0d;
-
-                var winnerBuyStrength = new AvgCalculator(15);
-                var winnerSellStrength= new AvgCalculator(15);
-                var looserBuyStrength= new AvgCalculator(15);
-                var looserSellStrength = new AvgCalculator(15);
-                var hasPassed = false;
-                ShadowCandle currentShadow = ShadowCandle.Null;
-
-                candleFeed.Zip(shadowCandleFeed.Stream, Tuple.Create)
-                    .Where(tup => tup.Item1.Val != null && tup.Item2.Val != null)
-                    .Select(tup => Tuple.Create(tup.Item1.Val, tup.Item2.Val))
-                    .DistinctUntilChanged()
-                    .Subscribe(tup =>
-                    {
-                        //Debug.Assert(tup.Item1.Timestamp == tup.Item2.Timestamp);
-                        var candle = tup.Item1;
-                        var shadow = tup.Item2;
-
-                        if (currentShadow == ShadowCandle.Null)
-                        {
-                            hasPassed = false;
-                            currentShadow = shadow;
-                        }
-
-                        if (!hasPassed && candle.PassedThroughPrice(shadow.High))
-                        {
-                            Debug.WriteLine($"Passed at {candle.TimeStamp}");
-                            hasPassed = true;
-                            return;
-                        }
-
-                        if (candle.TimeStamp.Date == new DateTime(2017, 04, 03) || candle.TimeStamp.Date == new DateTime(2017, 04, 04))
-                        {
-                            Debug.WriteLine($"APRrr - SH:{shadow.TimeStamp},C:{candle.TimeStamp}, {candle.High - shadow.Low}, {shadow.High - candle.Low}");
-                        }
-
-                        
-                        
-
-                            sellStrengthCalculator.Add(shadow.High - candle.Low);
-                            buyStrengthCalculator.Add(candle.High - shadow.Low);
-                        
-
-                        if (hasPassed && avgBuyStrength ==0)
-                        {
-                            if (candle.TimeStamp.Date == new DateTime(2017, 04, 04))
-                            {
-                                sellStrengthCalculator.DebugDump();
-                                buyStrengthCalculator.DebugDump();
-                                Debug.WriteLine($"APRrrrrrrr - {avgBuyStrength}, {avgSellStrength}");
-                            }
-
-                            avgSellStrength = sellStrengthCalculator.Average.GetValueOrDefault();
-                            avgBuyStrength = buyStrengthCalculator.Average.GetValueOrDefault();
-                        }
-
-                        if (shadow.TimeStamp.Date == currentShadow.TimeStamp.Date && hasPassed)
-                            return;
-
-
-                        if (shadow.TimeStamp.Date != currentShadow.TimeStamp.Date )
-                        {
-                            if (hasPassed)
-                            {
-                                
-
-                                var win = candle.Close > currentShadow.High;
-                                if (win)
-                                {
-                                    winnerBuyStrength.Add(avgBuyStrength);
-                                    winnerSellStrength.Add(avgSellStrength);
-
-                                    Debug.WriteLine(
-                                        $"BUY WIN, {candle.TimeStamp}, {winnerBuyStrength.Average.GetValueOrDefault()}, {winnerSellStrength.Average.GetValueOrDefault()}");
-                                }
-                                else
-                                {
-                                    looserBuyStrength.Add(buyStrengthCalculator.Average.GetValueOrDefault());
-                                    looserSellStrength.Add(sellStrengthCalculator.Average.GetValueOrDefault());
-
-                                    Debug.WriteLine(
-                                        $"BUY LOSS, {candle.TimeStamp}, {looserBuyStrength.Average.GetValueOrDefault()}, {looserSellStrength.Average.GetValueOrDefault()}");
-                                }
-                            }
-
-                            currentShadow = shadow;
-                            hasPassed = false;
-                            avgBuyStrength = 0;
-                            avgSellStrength = 0;
-                        }
-                    
-
-                        //if (candle.PassedThroughPrice(shadow.Low) && candle.Open > shadow.Low)
-                        //{
-                        //    Debug.WriteLine(
-                        //        $"PASSED Low, {candle.TimeStamp}, {shadow.Low - candle.Close}, {avgCalculator.Average.GetValueOrDefault()}, {lossavgCalculator.Average.GetValueOrDefault()}, {candle.ClosedBelowLow(shadow)}");
-                        //}
-
-
-                        //if (candle.PassedThroughPrice(shadow.Low))
-                        //{
-                        //    Debug.WriteLine($"PASSED LOW, {candle.TimeStamp}, {shadow.High - candle.Open}, {candle.ClosedAboveHigh(shadow)}");
-                        //}
-                    });
 
                 symbolFeeds.Add(instrument, 
                     candleFeed
-                        .Zip(shadowCandleFeed.Stream, (c, sh) =>
+                        .Zip(shadowCandleFeed.Stream, shadowStrength.Stream, (c, sh, strength) =>
                     {
                         Debug.Assert(c.Timestamp == sh.Timestamp);
 
@@ -238,7 +134,7 @@ namespace FxTrendFollowing.Strategies
                 var context = new ShadowBreakoutDiversifiedContext(Strategy, 
                     new FileWriter(Paths.StrategySummaryFile(Strategy, instrument).FullName),
                     instrument,
-                    new List<IIndicatorFeed> {shadowCandleFeed},
+                    new List<IIndicatorFeed> {shadowCandleFeed, shadowStrength},
                     new Lookback(lookback, new List<Candle>()),
                     new List<IContextInfo>()
                     {
@@ -254,19 +150,100 @@ namespace FxTrendFollowing.Strategies
                     .Merge(Strategy.CloseddOrders
                         .Where(order => order.OrderInfo.Symbol == instrument)
                         .Select(order => (IEvent)new OrderExecutedEvent(order.OrderInfo.TimeStamp, order)));
-                
+
                 var priceChart = candleFeed
-                    .Select(c => c.Val)
-                    .DistinctUntilChanged().Zip(contextStream,
-                    (candle, tup) => ((Candle)candle,
-                        tup.Indicators
-                            .OfType<ShadowCandleFeed>()
-                            .Select(i => i.ShadowCandle)
-                            .Select(shadowCandle => new List<(IIndicator, double)>() {
+                    .Zip(shadowCandleFeed.Stream, shadowStrength.Stream, Tuple.Create)
+                    .Select(tup =>
+                    {
+                        Debug.Assert(tup.Item1.Timestamp == tup.Item2.Timestamp);
+                        Debug.Assert(tup.Item1.Timestamp == tup.Item3.Timestamp);
+                        return Tuple.Create(tup.Item1.Val, tup.Item2.Val, tup.Item3.Val);
+                    })
+                    .DistinctUntilChanged()
+                    .Select(
+                    (tup) =>
+                    {
+                        var candle = tup.Item1;
+                        var shadowCandle = tup.Item2;
+                        var shadowSrtength = tup.Item3;
+
+                        var sStrength = shadowCandle.Low + shadowCandle.CandleLength() / 2 +
+                                        (shadowCandle.CandleLength() * shadowSrtength.Value.Val * 0.01);
+
+                        prevShStrengthHigh.Add(sStrength);
+
+
+                        if (prevShStrengthHigh.Count > 3)
+                        {
+                            prevShStrengthHigh.RemoveAt(0);
+                        }
+
+                        if (shadowCandle.High > prevShStrengthHigh.First()
+                            && shadowCandle.High < prevShStrengthHigh.Take(2).Last()
+                            && prevShStrengthHigh.Take(2).IsInAscending()
+                            && prevShStrengthHigh.TakeLast(2).IsInDescending())
+                        {
+                            Debug.Write((prevShStrengthHigh.Take(2).Last() - shadowCandle.High).PercentageOf(shadowCandle.CandleLength()) + ",");
+                        }
+
+
+                        return (candle,
+                            (IEnumerable<(IIndicator,double)>)new List<(IIndicator, double)>()
+                            {
                                 (CustomIndicator.Get("Shadow Candle High"), shadowCandle.High),
-                                (CustomIndicator.Get("Shadow Candle Low"), shadowCandle.Low) })
-                            .SelectMany(collection => collection))
-                );
+                                (CustomIndicator.Get("Shadow Candle Middle"),
+                                    shadowCandle.Low + shadowCandle.CandleLength() / 2),
+                                (CustomIndicator.Get("Shadow Candle Low"), shadowCandle.Low),
+                                (CustomIndicator.Get("Shadow Strength"), sStrength)
+                            });
+                                    //SelectMany(collection => collection)
+                                    //.Concat(ctx.Indicators
+                                    //    .OfType<ShadowStrengthFeed>()
+                                    //    .Select(s =>
+                                    //    {
+                                    //        //var sStrength = s.PrevShadowCandle.Low + s.PrevShadowCandle.CandleLength() / 2 +
+                                    //        //                (s.PrevShadowCandle.CandleLength() * s.PrevIndicator.Value * 0.01);
+                                    //        Debug.WriteLine(ctx.LastCandle.TimeStamp + " " +
+                                    //                        (s.ShadowStrength.Value - s.PrevShadowCandle.High)
+                                    //                        .PercentageOf(s.PrevShadowCandle.CandleLength()));
+                                    //        return 
+                                    //    })));
+                    });
+
+
+                //var priceChart = candleFeed
+                //    .Zip(contextStream, Tuple.Create)
+                //    //.DistinctUntilChanged()
+                //    .Select(
+                //    (tup) =>
+                //    {
+                //        var candle = tup.Item1.Val;
+                //        var ctx = tup.Item2;
+
+                //        return (candle,
+                //                ctx.Indicators
+                //                    .OfType<ShadowCandleFeed>()
+                //                    .Select(i => i.ShadowCandle)
+                //                    .Select(shadowCandle => new List<(IIndicator, double)>()
+                //                    {
+                //                        (CustomIndicator.Get("Shadow Candle High"), shadowCandle.High),
+                //                        (CustomIndicator.Get("Shadow Candle Middle"),
+                //                            shadowCandle.Low + shadowCandle.CandleLength() / 2),
+                //                        (CustomIndicator.Get("Shadow Candle Low"), shadowCandle.Low)
+                //                    })
+                //                    .SelectMany(collection => collection)
+                //                    .Concat(ctx.Indicators
+                //                        .OfType<ShadowStrengthFeed>()
+                //                        .Select(s =>
+                //                        {
+                //                            //var sStrength = s.PrevShadowCandle.Low + s.PrevShadowCandle.CandleLength() / 2 +
+                //                            //                (s.PrevShadowCandle.CandleLength() * s.PrevIndicator.Value * 0.01);
+                //                            Debug.WriteLine(ctx.LastCandle.TimeStamp + " " +
+                //                                            (s.ShadowStrength.Value - s.PrevShadowCandle.High)
+                //                                            .PercentageOf(s.PrevShadowCandle.CandleLength()));
+                //                            return (CustomIndicator.Get("Shadow Strength"), s.ShadowStrength.Value);
+                //                        })));
+                //    });
 
 
                 var symbolChart = new CreateMultiPaneStockChartsViewModel(instrument, priceChart,
@@ -288,7 +265,7 @@ namespace FxTrendFollowing.Strategies
                         }
                     }, eventsFeed);
 
-                InstrumentCharts.Add(new SymbolChartsViewModel(instrument, symbolChart));
+                InstrumentCharts.Add(new SymbolChartsViewModel(instrument, symbolChart, new StrategyInstrumentSummaryReport(Strategy, instrument)));
             }
 
             symbolFeeds.Values.ToList()
@@ -900,50 +877,124 @@ namespace FxTrendFollowing.Strategies
                     {
                         ctx =>
                         {
+                            if(!(ctx.LastCandle.TimeStamp.Hour >= 9 && ctx.LastCandle.TimeStamp.Hour <= 17))
+                                return PredicateResult.Fail;
+
+
+
                             if(ctx.Strategy.OpenOrder != null)
                                 return PredicateResult.Fail;
 
+                            //if (ctx.Strategy.RecentClosedOrder?.OrderInfo.TimeStamp.DayOfYear ==
+                            //    ctx.LastCandle.TimeStamp.DateTime.DayOfYear)
+                            //{
+                            //    return PredicateResult.Fail;
+                            //}
+
                             var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
-                            var shadowCandles = ctx.Indicators.OfType<ShadowCandleFeed>().Single().Lookback;
+                            var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
+
+                            //var shouldBuy = (shadowStrengthFeed.ShadowStrengths.TakeLast(3).Select(v => v.Val).IsInAscending()
+                            //        && shadowStrengthFeed.ShadowStrengths.TakeLast(3).Select(v => v.Val).First() < shadowCandle.High
+                            //        && shadowStrengthFeed.ShadowStrengths.TakeLast(3).Select(v => v.Val).Last() > shadowCandle.High);
+
+                            //var something = shadowStrengthFeed.ShadowStrengths.Select(v => v.Val)
+                            //    .Zip(shadowStrengthFeed.ShadowStrengths.Select(v => v.Val).Skip(1), Tuple.Create)
+                            //    .Distinct()
+                            //    .Select(tup =>
+                            //    {
+                            //        if (tup.Item1 < shadowCandle.High && tup.Item2 > shadowCandle.High)
+                            //            return 1d;
+
+                            //        if (tup.Item1 > shadowCandle.High && tup.Item2 < shadowCandle.High)
+                            //            return 2d;
+
+                            //        return 0d;
+
+                            //    }).Where(i => i != 0d);
+
+                            //var shouldBuy = (something.Count() >= 2 && something.IsInAscending());
 
 
-                            var isBuy = ctx.LastCandle.PassedThroughPrice(shadowCandle.High)
-                                        && ctx.LastCandle.Open < shadowCandle.High;
-                         
-                            if(!isBuy)
-                                return PredicateResult.Fail;
+
+
+
+                            var shouldBuy = shadowStrengthFeed.ShadowStrengths.All(v => v.Val > shadowCandle.MiddlePoint() && v.Val < shadowCandle.High)
+                                            && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
+
+                            //var shouldBuy = shadowStrengthFeed.ShadowStrength > shadowCandle.MiddlePoint()
+                            //                && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
+
+                            var shouldSell = shadowStrengthFeed.ShadowStrengths.All(v => v.Val < shadowCandle.MiddlePoint() && v.Val > shadowCandle.Low)
+                                             && ctx.LastCandle.Close > shadowCandle.MiddlePoint();
+
+                            //var shouldSell = false;
+
+                            //var shouldBuy = shadowStrengthFeed.ShadowStrength  > shadowCandle.High
+                            //            && (shadowStrengthFeed.ShadowStrength.Value - shadowCandle.High).PercentageOf(shadowCandle.CandleLength()) < 10;
+
+
+                            //prevShStrengthHigh.Add(sStrength);
+
+
+
+
+
+                            if (shouldBuy)
+                            {
+
+                                var breakpoint = true;
+                                //Console.WriteLine($"----------{ctx.LastCandle.TimeStamp}--------------");
+                                //shadowStrengthFeed.ShadowStrengths
+                                //    .Foreach(v => Console.WriteLine(v));
+                                //Console.WriteLine($"------------------------");
+
+                                //shadowStrengthFeed.ShadowStrengths.TakeLast(3)
+                                //    .Foreach(v => Console.WriteLine(v));
+
+
+                                //Console.WriteLine(shadowCandle.ToCsv());
+
+                                //Console.WriteLine("----------");
+                            }
+
+
+                            return (shouldBuy || shouldSell).ToPredicateResult();
+
+
+                            //var firstTwo = shadowStrengthFeed.ShadowStrengths.TakeLast(3).Take(2).ToList();
+                            //var allExceptLast =
+                            //    shadowStrengthFeed.ShadowStrengths.Take(shadowStrengthFeed.ShadowStrengths.Count - 1);
+                            //shouldBuy =
+                            //    (allExceptLast.IsInAscending()
+                            //        && firstTwo.IsInAscending()
+                            //        && shadowStrengthFeed.ShadowStrengths.TakeLast(2).IsInDescending()
+                            //        && firstTwo.First() < shadowCandle.High
+                            //        && firstTwo.Last() > shadowCandle.High
+                            //        && ctx.LastCandle.Close < shadowCandle.High);
+
+
                             
-                            if(ctx.LookbackCandles.Candles
-                                   .Where(c => c.TimeStamp.Date == ctx.LastCandle.TimeStamp.Date)
-                                   .First(c => c.High >= shadowCandle.High) != ctx.LastCandle)
-                                return PredicateResult.Fail;
 
-                            Debug.WriteLine($"APRR {ctx.LastCandle.TimeStamp}");
 
-                            var tupStrength = ctx.LookbackCandles.Candles
-                                .Select(c =>
-                                {
-                                    var shadow = (shadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < c.TimeStamp.Date));
+                            //var s = shadowStrengthFeed;
 
-                                    if (shadow == null)
-                                        return Tuple.Create(0d,0d);
+                            //var shouldBuy = false;
+                            //if (s.ShadowStrength.Value < s.PrevShadowCandle.Low)
+                            //{
+                            //    var strength =(s.PrevShadowCandle.Low - s.ShadowStrength.Value)
+                            //        .PercentageOf(s.PrevShadowCandle.CandleLength());
 
-                                    if (ctx.LastCandle.TimeStamp.Date == new DateTime(2017, 04, 04))
-                                    {
-                                        Debug.WriteLine($"APR - SH:{shadow.TimeStamp},C:{c.TimeStamp}, {c.High - shadow.Low}, {shadow.High - c.Low}");
-                                    }
+                            //    shouldBuy = (strength > 300);
+                            //}
 
-                                    return Tuple.Create(c.High - shadow.Low, shadow.High - c.Low);
-                                }).ToList();
-                            
-                            var buyStrength = tupStrength.Select(t => t.Item1).Average();
-                            var sellStrength = tupStrength.Select(t => t.Item2).Average();
-                         
-                            
-                            Debug.WriteLine("");
-                            Debug.WriteLine($"Strength at {ctx.LastCandle.TimeStamp}, {buyStrength}, {sellStrength}, {buyStrength - sellStrength}");
-                            Debug.WriteLine("");
-                            return (isBuy && buyStrength - sellStrength >= 0.0050).ToPredicateResult();
+                            //var shadowStrength = shadowStrengthFeed.ShadowStrength;
+                            //var shouldBuy = shadowStrength.HasValue
+                            //                && ctx.LastCandle.Open < shadowStrength.Value
+                            //                && ctx.LastCandle.Close > shadowStrength.Value
+                            //                && shadowStrengthFeed.ShadowStrengths.All(s => s < shadowMiddlePoint);
+
+                            return shouldBuy.ToPredicateResult();
                         }
                     }
                 },
@@ -954,10 +1005,25 @@ namespace FxTrendFollowing.Strategies
                         ctx.LogFile.Write($"Could not place the order: Open Order exists, {ctx.Strategy.OpenOrder.ToCsv()}");
                         return ctx;
                     }
-
+                    var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
                     var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
 
-                    ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, shadowCandle.High, Side.Buy);
+
+                    var shouldBuy = shadowStrengthFeed.ShadowStrengths.All(v => v.Val > shadowCandle.MiddlePoint() && v.Val < shadowCandle.High)
+                                    && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
+
+                    //var shouldBuy = shadowStrengthFeed.ShadowStrength > shadowCandle.MiddlePoint()
+                    //                && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
+
+                    var shouldSell = shadowStrengthFeed.ShadowStrengths.All(v => v.Val < shadowCandle.MiddlePoint() && v.Val > shadowCandle.Low)
+                                     && ctx.LastCandle.Close > shadowCandle.MiddlePoint();
+
+
+                    var side = shouldBuy ? Side.Buy : Side.ShortSell;
+                    //var entryPrice = shadowCandle.High;
+                    var entryPrice = ctx.LastCandle.Close;
+
+                    ctx = ctx.PlaceOrder(ctx.LastCandle.TimeStamp, ctx.LastCandle, entryPrice, side);
                         
                     return ctx;
                 });
@@ -971,23 +1037,62 @@ namespace FxTrendFollowing.Strategies
                     {
                         ctx =>
                         {
+                            return PredicateResult.Success;
                             if (ctx.Strategy.OpenOrder?.OrderInfo.Symbol != ctx.Instrument)
                                 return PredicateResult.Success;
 
+                            var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
+                            var shadowCandles = ctx.Indicators.OfType<ShadowCandleFeed>().Single().Lookback;
+                            var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
 
-                            if (ctx.LastCandle.TimeStamp.Date != ctx.Strategy.OpenOrder.OrderInfo.TimeStamp.Date)
-                            {
-                                var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle.Close, 1);
 
-                                ctx.LogFile.Write(
-                                    $"Time limit triggered," +
-                                    $"PL, {pl}," +
-                                    $"{ctx.LastCandle.ToCsv()}");
+                            var shadowStrength = shadowStrengthFeed.ShadowStrength;
+                            var shouldSell = shadowStrength.HasValue
+                                            && shadowStrength.Value < (shadowCandle.Low + shadowCandle.CandleLength() / 2)
+                                            && ctx.LastCandle.Close > shadowStrength.Value;
 
-                                return PredicateResult.Success;
-                            }
+                            return shouldSell.ToPredicateResult();
+                            
 
-                            return PredicateResult.Fail;
+                            
+
+                            //if (ctx.LastCandle.TimeStamp.Date != ctx.Strategy.OpenOrder.OrderInfo.TimeStamp.Date)
+                            //{
+                            //    var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle.Close, 1);
+
+                            //    ctx.LogFile.Write(
+                            //        $"Time limit triggered," +
+                            //        $"PL, {pl}," +
+                            //        $"{ctx.LastCandle.ToCsv()}");
+
+                            //    return PredicateResult.Success;
+                            //}
+
+                            //var shadowCandles = ctx.Indicators.OfType<ShadowCandleFeed>().Single().Lookback;
+
+
+                            //var tupStrength = ctx.LookbackCandles.Candles
+                            //    .Take(24)
+                            //    .Select(c =>
+                            //    {
+                            //        var shadow =
+                            //            (shadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < c.TimeStamp.Date));
+
+                            //        if (shadow == null)
+                            //            return 0;
+
+                            //        //if (ctx.LastCandle.TimeStamp.Date == new DateTime(2017, 04, 04))
+                            //        //{
+                            //        //    Debug.WriteLine($"APR - SH:{shadow.TimeStamp},C:{c.TimeStamp}, {c.High - shadow.Low}, {shadow.High - c.Low}");
+                            //        //}
+
+                            //        var tup = Tuple.Create((c.High - shadow.Low).PercentageOf(shadow.CandleLength()),
+                            //            (shadow.High - c.Low).PercentageOf(shadow.CandleLength()));
+                            //        return ((int) (tup.Item1 - tup.Item2));
+                            //    }).ToList();
+
+                            //return (tupStrength.Take(23).Average() > tupStrength.Take(24).Average())
+                            //    .ToPredicateResult();
                         }
                     }
                 },
@@ -996,11 +1101,32 @@ namespace FxTrendFollowing.Strategies
 
                     if (ctx.Strategy.OpenOrder is BuyOrder)
                     {
-                    
+
+                        var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle.High, 1);
                         var candle = ctx.LastCandle;
-                    
+                        //var exitPrice = pl > 0.0010
+                        //    ? ctx.Strategy.OpenOrder.OrderInfo.Price + 0.0010d.USD()
+                        //    : ctx.LastCandle.Close.USD();
+                        var exitPrice = ctx.LastCandle.Close.USD();
                         var closedOrder = new SellOrder((BuyOrder)ctx.Strategy.OpenOrder,
-                            new OrderInfo(candle.TimeStamp, ctx.Instrument, ctx.Strategy, ctx.LastCandle.Close.USD(),
+                            new OrderInfo(candle.TimeStamp, ctx.Instrument, ctx.Strategy, exitPrice,
+                                100000, candle));
+                        ctx.Strategy.Close(closedOrder);
+                        return ctx.ReplaceContextInfo(new RecentOrderInfo(closedOrder));
+                    }
+
+                    if (ctx.Strategy.OpenOrder is ShortSellOrder)
+                    {
+                        var pl = ctx.Strategy.OpenOrder.CurrentProfitLoss(ctx.LastCandle.Low, 1);
+                        var candle = ctx.LastCandle;
+                        //var exitPrice = pl > 0.0010
+                        //    ? ctx.Strategy.OpenOrder.OrderInfo.Price - 0.0010d.USD()
+                        //    : ctx.LastCandle.Close.USD();
+
+                        var exitPrice = ctx.LastCandle.Close.USD();
+
+                        var closedOrder = new BuyToCoverOrder((ShortSellOrder)ctx.Strategy.OpenOrder,
+                            new OrderInfo(candle.TimeStamp, ctx.Instrument, ctx.Strategy, exitPrice,
                                 100000, candle));
                         ctx.Strategy.Close(closedOrder);
                         return ctx.ReplaceContextInfo(new RecentOrderInfo(closedOrder));

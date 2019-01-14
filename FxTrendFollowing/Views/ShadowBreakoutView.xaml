@@ -19,69 +19,64 @@
             <ContentPresenter Content="{Binding IbtwsViewModel}"/>
         </TabItem>
         <TabItem Header="Strategy">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="4*"/>
-        </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0">
-            <Button Content="Start" Command="{Binding StartCommand}"></Button>
-            <Button Content="Stop" Command="{Binding StopCommand}"></Button>
-            <StackPanel DataContext="{Binding Reporters.SummaryReport}">
-                <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
-                <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
-                <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
-                <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
-            </StackPanel>
-            <TextBlock Text="{Binding Status}" />
-            <DataGrid x:Name="symbolGrid"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <Button Content="Start" Command="{Binding StartCommand}"></Button>
+                    <Button Content="Stop" Command="{Binding StopCommand}"></Button>
+                    <StackPanel DataContext="{Binding Reporters.SummaryReport}">
+                        <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                        <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                        <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                        <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Status}" />
+                    <DataGrid x:Name="symbolGrid"
                       IsReadOnly="True"
                       ItemsSource="{Binding InstrumentCharts}" AutoGenerateColumns="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Instrument" Binding="{Binding Instrument}" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </StackPanel>
-
-        <TabControl Grid.Column="1"
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Instrument" Binding="{Binding Instrument}" />
+                            <DataGridTextColumn Header="Instrument" Binding="{Binding SummaryReport.ProfitLoss}" />
+                            <DataGridTextColumn Header="Total trades" Binding="{Binding SummaryReport.TotalTrades}" />
+                            <DataGridTextColumn Header="Win%" Binding="{Binding SummaryReport.WinningPercentage}" />
+                            <DataGridTextColumn Header="Sharpe" Binding="{Binding SummaryReport.SharpeRatio}" />
+                            <DataGridTextColumn Header="MaxDD %" Binding="{Binding SummaryReport.MaxDDPercentage}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" />
+                <TabControl Grid.Column="2"
                     SelectedItem="{Binding ElementName=symbolGrid, Path=SelectedItem}"
                     ItemsSource="{Binding InstrumentCharts}">
-            <TabControl.ItemTemplate>
-                <DataTemplate>
+                    <TabControl.ItemTemplate>
+                        <DataTemplate>
                             <TextBlock Text="{Binding Instrument}"/>
-                </DataTemplate>
-            </TabControl.ItemTemplate>
-            <TabControl.ContentTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding Summary}"/>
-                        <multiPane:CreateMultiPaneStockCharts Grid.Row="1" DataContext="{Binding Chart}"/>
-                    </Grid>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel DataContext="{Binding SummaryReport}">
+                                    <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
+                                    <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
+                                    <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
+                                    <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
+                                </StackPanel>
+                                <multiPane:CreateMultiPaneStockCharts Grid.Row="1" DataContext="{Binding Chart}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
 
-                    <!--<DockPanel>
-                        --><!--<Grid DockPanel.Dock="Top">
-                            <StackPanel Grid.Column="2" DataContext="{Binding Reporters.SummaryReport}">
-                                <TextBlock Text="{Binding ProfitLoss, StringFormat=ProfitLoss:{0}}" />
-                                <TextBlock Text="{Binding TotalTrades, StringFormat=TotalTrades:{0}}" />
-                                <TextBlock Text="{Binding WinningPercentage, StringFormat=WinningPercentage:{0}}" />
-                                <TextBlock Text="{Binding SharpeRatio, StringFormat=SharpeRatio:{0}}" />
-                            </StackPanel>
-                        </Grid>-->
-                        <!--<TextBlock DockPanel.Dock="Top" Text="{Binding Status}" />-->
-                        <!--<charting:TraderView
-                            DataContext="{Binding ChartVm}"/>-->
-
-                        <!--<charting:TraderView DataContext="{Binding ChartVm}"></charting:TraderView>--><!--
-                                            </DockPanel>-->
-                </DataTemplate>
-            </TabControl.ContentTemplate>
-        </TabControl>
-
-    </Grid>
+            </Grid>
         </TabItem>
 
     </TabControl>

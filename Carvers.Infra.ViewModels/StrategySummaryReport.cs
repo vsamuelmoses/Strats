@@ -108,5 +108,102 @@ namespace Carvers.Infra.ViewModels
 
     }
 
+    public class StrategyInstrumentSummaryReport : ViewModel
+    {
+        private readonly Symbol _symbol;
+        private readonly Subject<DateTimeEvent<Price>> _profitLossStream;
 
+        public StrategyInstrumentSummaryReport(IStrategy strategy, Symbol symbol)
+        {
+            _symbol = symbol;
+            _profitLossStream = new Subject<DateTimeEvent<Price>>();
+            ddCalculator = new SimpleDrawDownCalculator();
+            strategy.CloseddOrders
+                .Subscribe(recentClosedOrder => Report(recentClosedOrder, strategy, symbol));
+        }
+
+        private void Report(IOrder recentClosedOrder, IStrategy strategy, Symbol symbol)
+        {
+            var orders = strategy.ClosedOrders.Where(o => o.OrderInfo.Symbol == symbol).ToList();
+            TotalTrades = orders.Count();
+            ProfitableTrades = orders.Count(o => o.ProfitLoss > Price.ZeroUSD);
+            LoosingTrades = orders.Count(o => o.ProfitLoss < Price.ZeroUSD);
+
+            if (orders.Any())
+                WinningPercentage = (profitableTrades * 100) / orders.Count();
+
+            ProfitLoss = orders.ProfitLoss();
+            SharpeRatio = SharpeRatioCalculator.Calculate(orders);
+            MaxDDPercentage = ddCalculator.Calculate(ProfitLoss.Value);
+            _profitLossStream.OnNext(new DateTimeEvent<Price>(recentClosedOrder.OrderInfo.TimeStamp, ProfitLoss));
+        }
+
+        private int totalTrades;
+        public int TotalTrades
+        {
+            get { return totalTrades; }
+            set { totalTrades = value; OnPropertyChanged(); }
+        }
+
+        private int profitableTrades;
+        public int ProfitableTrades
+        {
+            get { return profitableTrades; }
+            set { profitableTrades = value; OnPropertyChanged(); }
+        }
+
+        private int loosingTrades;
+        public int LoosingTrades
+        {
+            get { return loosingTrades; }
+            set { loosingTrades = value; OnPropertyChanged(); }
+        }
+
+
+        private double winningPercentage;
+
+        public double WinningPercentage
+        {
+            get { return winningPercentage; }
+            set { winningPercentage = value; OnPropertyChanged(); }
+        }
+
+
+        private Price profitLoss;
+
+        public Price ProfitLoss
+        {
+            get { return profitLoss; }
+            set
+            {
+                profitLoss = value;
+                OnPropertyChanged();
+
+            }
+        }
+
+
+        public double MaxDDPercentage
+        {
+            get => _maxDdPercentage;
+            set
+            {
+                _maxDdPercentage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double sharpeRatio;
+        private double _maxDdPercentage;
+        private SimpleDrawDownCalculator ddCalculator;
+
+        public double SharpeRatio
+        {
+            get { return sharpeRatio; }
+            set { sharpeRatio = value; OnPropertyChanged(); }
+        }
+
+        public IObservable<DateTimeEvent<Price>> ProfitLossStream => _profitLossStream;
+
+    }
 }

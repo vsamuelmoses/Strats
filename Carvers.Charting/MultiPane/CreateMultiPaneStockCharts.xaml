@@ -137,7 +137,7 @@
                 --><!--Style="{StaticResource ZoomExtentsButtonStyle}"--><!--
 
                 <ToggleButton HorizontalAlignment="Left"
-                              Command="{Binding PanModeCommand}"
+                              Command="{Binding PanModeCommand}"Hei
                               Content="Pan"
                               Style="{StaticResource PanButtonStyle}"
                               s:ToggleButtonExtensions.GroupName="Modifiers" />

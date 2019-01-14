@@ -33,7 +33,7 @@ namespace Carvers.Charting.MultiPane
 {
     public class PricePaneViewModel : BaseChartPaneViewModel
     {
-        private readonly IEnumerable<Color> _colors = new List<Color>() { Colors.Violet, Colors.Brown, Colors.Blue, Colors.LawnGreen, Colors.Yellow, Colors.DarkOrange };
+        private readonly IEnumerable<Color> _colors = new List<Color>() { Colors.Violet, Colors.Brown, Colors.Blue, Colors.CadetBlue, Colors.Yellow, Colors.DarkOrange };
         private Dictionary<string, XyDataSeries<DateTime, double>> _series;
 
         public static async Task<PricePaneViewModel> ConstructPricePaneViewModel(
@@ -79,6 +79,10 @@ namespace Carvers.Charting.MultiPane
             candleAndIndicatorFeed.Subscribe(tup =>
             {
                 var candle = tup.Item1;
+
+                if (candle == null)
+                    return;
+
                 stockPrices.Append(candle.TimeStamp.DateTime, candle.Open, candle.High, candle.Low, candle.Close);
                 tup.Item2.ForEach(it => OnIndicator(it.Item1, tup.Item1, it.Item2));
             });

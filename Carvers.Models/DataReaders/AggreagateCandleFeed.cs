@@ -69,10 +69,10 @@ namespace Carvers.Models.DataReaders
 
                     if (candle.TimeStamp - aggregateCandle.TimeStamp == span)
                     {
-                        aggregateCandle = aggregateCandle.Add(candle);
+                        //aggregateCandle = aggregateCandle.Add(candle);
                         //Thread.Sleep(20);
                         Publish(timestamp, aggregateCandle);
-                        Debug.Assert(candle.TimeStamp.Minute % span.TotalMinutes == 0 && candle.TimeStamp.Second == 0);
+                        //Debug.Assert(candle.TimeStamp.Minute % span.TotalMinutes == 0 && candle.TimeStamp.Second == 0);
                         aggregateCandle = candle;
                     }
                     else if (candle.TimeStamp - aggregateCandle.TimeStamp > span)

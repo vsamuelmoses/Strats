@@ -147,10 +147,6 @@ namespace FxTrendFollowing
             {
                 case CurrencyPair pair:
                 {
-                    if (dateTime.Year == 2018)
-                        return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
-                            $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}02.csv");
-
                     return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
                         $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
                 }
