@@ -10,8 +10,8 @@
 *.sln.docstates
 
 # Data folder
-Data/
-IBData/
+#Data/
+#IBData/
 
 #Logs
 Logs/
