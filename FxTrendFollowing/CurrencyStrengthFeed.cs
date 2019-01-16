@@ -5,6 +5,7 @@ using System.Reactive.Subjects;
 using Carvers.Infra.Extensions;
 using Carvers.Models;
 using Carvers.Models.Extensions;
+using Carvers.Utilities;
 
 namespace FxTrendFollowing
 {

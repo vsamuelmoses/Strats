@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
@@ -17,6 +16,7 @@ using Carvers.Models;
 using Carvers.Models.DataReaders;
 using Carvers.Models.Events;
 using Carvers.Models.Indicators;
+using Carvers.Utilities;
 using IBApi;
 
 namespace FxTrendFollowing.Strategies

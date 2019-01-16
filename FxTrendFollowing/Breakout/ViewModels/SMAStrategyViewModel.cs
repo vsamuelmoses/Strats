@@ -15,8 +15,10 @@ using Carvers.Models;
 using Carvers.Models.DataReaders;
 using Carvers.Models.Events;
 using Carvers.Models.Indicators;
+using Carvers.Utilities;
 using FxTrendFollowing.Strategies;
 using IBApi;
+using Paths = Carvers.Utilities.Paths;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {

@@ -8,6 +8,7 @@ using Carvers.IBApi.Extensions;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
 using Carvers.Models.Extensions;
+using Carvers.Utilities;
 using IBSampleApp.messages;
 
 namespace FxTrendFollowing.ViewModels

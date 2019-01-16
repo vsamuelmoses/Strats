@@ -22,7 +22,9 @@ using Carvers.Models.DataReaders;
 using Carvers.Models.Events;
 using Carvers.Models.Extensions;
 using Carvers.Models.Indicators;
+using Carvers.Utilities;
 using IBApi;
+using Paths = Carvers.Utilities.Paths;
 
 namespace FxTrendFollowing.Strategies
 {

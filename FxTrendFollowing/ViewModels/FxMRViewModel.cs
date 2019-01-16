@@ -14,6 +14,8 @@ using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Infra.Extensions;
 using Carvers.Models.Extensions;
+using Carvers.Utilities;
+using Paths = Carvers.Utilities.Paths;
 
 namespace FxTrendFollowing.ViewModels
 {

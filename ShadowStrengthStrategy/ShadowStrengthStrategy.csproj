@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0809F22C-E772-4F7B-8442-ED8F5CF2288F}</ProjectGuid>
+    <ProjectGuid>{B9EEBAEE-3F32-4D1C-8AFC-F3BAB5A8AE32}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>FxTrendFollowing</RootNamespace>
-    <AssemblyName>FxTrendFollowing</AssemblyName>
+    <RootNamespace>ShadowStrengthStrategy</RootNamespace>
+    <AssemblyName>ShadowStrengthStrategy</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -24,7 +24,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -35,25 +34,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <NoWin32Manifest>true</NoWin32Manifest>
-  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="OxyPlot, Version=2.0.0.0, Culture=neutral, PublicKeyToken=638079a8f0bd61e9, processorArchitecture=MSIL">
-      <HintPath>..\packages\OxyPlot.Core.2.0.0-unstable1035\lib\net45\OxyPlot.dll</HintPath>
-    </Reference>
-    <Reference Include="OxyPlot.Wpf">
-      <HintPath>..\packages\OxyPlot.Wpf.2.0.0-unstable1035\lib\net452\OxyPlot.Wpf.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Collections.Immutable, Version=1.2.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Collections.Immutable.1.5.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
-    </Reference>
     <Reference Include="System.Data" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
-    </Reference>
     <Reference Include="System.Reactive, Version=4.1.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Reactive.4.1.2\lib\net46\System.Reactive.dll</HintPath>
     </Reference>
@@ -63,9 +46,8 @@
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.1\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="System.ValueTuple">
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System.Windows" />
     <Reference Include="System.Windows.Forms" />
@@ -87,43 +69,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Breakout\ViewModels\BrekaoutViewModel.cs" />
-    <Compile Include="Breakout\ViewModels\CandleSentimentEvaluator.cs" />
-    <Compile Include="Breakout\ViewModels\ContextExtensions.cs" />
-    <Compile Include="Breakout\ViewModels\MultipleSmaPatternsStrategy.cs" />
-    <Compile Include="Breakout\ViewModels\SimpleBreakout.cs" />
-    <Compile Include="Breakout\ViewModels\SMAAngles.cs" />
-    <Compile Include="Breakout\ViewModels\SMAContext.cs" />
-    <Compile Include="Breakout\ViewModels\SmaContextInfo.cs" />
-    <Compile Include="Breakout\ViewModels\SMACrossOverStrategy.cs" />
-    <Compile Include="Breakout\ViewModels\SMAStrategyViewModel.cs" />
-    <Compile Include="Breakout\Views\BreakoutView.xaml.cs">
-      <DependentUpon>BreakoutView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="CurrencyStrengthFeed.cs" />
-    <Compile Include="Reporters\CurrencyStrengthLogger.cs" />
-    <Compile Include="Strategies\ShadowBreakoutStrategy.cs" />
-    <Compile Include="Strategies\Day20BreakoutTrade.cs" />
-    <Compile Include="Strategies\MovingAveragesPerfectOrder.cs" />
-    <Compile Include="Strategies\ShadowBreakoutDiversified.cs" />
-    <Compile Include="StrategyRunner.cs" />
-    <Compile Include="TrendFollowing.cs" />
-    <Compile Include="TrendFollowingOptions.cs" />
-    <Compile Include="ViewModels\AllCurrencyStrength.cs" />
-    <Compile Include="ViewModels\CSIFeedViewModel.cs" />
-    <Compile Include="ViewModels\HourlyCurrencyPairData.cs" />
-    <Compile Include="ViewModels\FxMRViewModel.cs" />
-    <Compile Include="ViewModels\SingleCurrencyStrength.cs" />
-    <Compile Include="Views\FxMRMainWindow.xaml.cs">
-      <DependentUpon>FxMRMainWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\ShadowBreakoutView.xaml.cs">
-      <DependentUpon>ShadowBreakoutView.xaml</DependentUpon>
-    </Compile>
-    <Page Include="Breakout\Views\BreakoutView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
+    <Compile Include="Models\SssContextExtensions.cs" />
+    <Compile Include="Models\SssContext.cs" />
+    <Compile Include="Models\StrategyLogic.cs" />
+    <Compile Include="ViewModels\SssViewModel.cs" />
+    <Compile Include="ViewModels\SymbolChartsViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -136,14 +86,6 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Views\FxMRMainWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\ShadowBreakoutView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -172,17 +114,14 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="..\Carvers.Charting.App\Carvers.Charting.App.csproj">
-      <Project>{66a99234-410b-4c12-9a8f-64985ebcc876}</Project>
-      <Name>Carvers.Charting.App</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Carvers.Charting\Carvers.Charting.csproj">
       <Project>{8dc4e334-eb48-4daf-befe-f4273ced3726}</Project>
       <Name>Carvers.Charting</Name>
     </ProjectReference>
     <ProjectReference Include="..\Carvers.IB.App\Carvers.IB.App.csproj">
-      <Project>{c8a448aa-996e-4b66-9cb2-3cf997a0e589}</Project>
+      <Project>{C8A448AA-996E-4B66-9CB2-3CF997A0E589}</Project>
       <Name>Carvers.IB.App</Name>
     </ProjectReference>
     <ProjectReference Include="..\Carvers.IBApi\Carvers.IBApi.csproj">
@@ -190,7 +129,7 @@
       <Name>Carvers.IBApi</Name>
     </ProjectReference>
     <ProjectReference Include="..\Carvers.Infra.ViewModels\Carvers.Infra.ViewModels.csproj">
-      <Project>{CC81AA20-DF16-47AE-9521-F18AC72529D1}</Project>
+      <Project>{cc81aa20-df16-47ae-9521-f18ac72529d1}</Project>
       <Name>Carvers.Infra.ViewModels</Name>
     </ProjectReference>
     <ProjectReference Include="..\Carvers.Infra\Carvers.Infra.csproj">
@@ -201,21 +140,18 @@
       <Project>{c3c7af04-7d5f-4e34-8ed5-7d3bb7fd774e}</Project>
       <Name>Carvers.Models</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Carvers.TradingEngine\Carvers.TradingEngine.csproj">
-      <Project>{a739cda2-78a8-436d-96ec-8869f7808ae4}</Project>
-      <Name>Carvers.TradingEngine</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Carvers.Utilities\Carvers.Utilities.csproj">
-      <Project>{5e1b72e1-fb51-4a38-a240-a6296d56d6f3}</Project>
+      <Project>{5E1B72E1-FB51-4A38-A240-A6296D56D6F3}</Project>
       <Name>Carvers.Utilities</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FxTrendFollowing\FxTrendFollowing.csproj">
+      <Project>{0809F22C-E772-4F7B-8442-ED8F5CF2288F}</Project>
+      <Name>FxTrendFollowing</Name>
     </ProjectReference>
     <ProjectReference Include="..\IBApi\CSharpClient\client\CSharpAPI.csproj">
       <Project>{8EDE0744-96C2-40B0-A8DC-37DF79370203}</Project>
       <Name>CSharpAPI</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Breakout\Models\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

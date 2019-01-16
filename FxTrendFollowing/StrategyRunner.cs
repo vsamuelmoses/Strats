@@ -9,6 +9,7 @@ using Carvers.Infra.Extensions;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.TradingEngine;
+using Carvers.Utilities;
 
 namespace FxTrendFollowing
 {

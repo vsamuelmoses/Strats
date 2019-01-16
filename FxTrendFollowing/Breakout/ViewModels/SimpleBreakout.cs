@@ -16,6 +16,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Carvers.Utilities;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
