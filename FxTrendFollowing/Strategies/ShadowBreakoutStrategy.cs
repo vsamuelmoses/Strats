@@ -21,7 +21,6 @@ using Carvers.Models.Extensions;
 using Carvers.Models.Indicators;
 using Carvers.Utilities;
 using IBApi;
-using Paths = Carvers.Utilities.Paths;
 
 namespace FxTrendFollowing.Strategies
 {
@@ -57,7 +56,7 @@ namespace FxTrendFollowing.Strategies
                 .Select(c => new Timestamped<Candle>(c.TimeStamp, c));
             var hourlyFeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromHours(1)).Stream;
             var dailyfeed = new AggreagateCandleFeed(minuteFeed, TimeSpan.FromDays(1)).Stream;
-            var shadowCandleFeed = new ShadowCandleFeed(Paths.ShadowCandlesFor(interestedSymbols.Single(), "1D"), dailyfeed, 2);
+            var shadowCandleFeed = new ShadowCandleFeed(GlobalPaths.ShadowCandlesFor(interestedSymbols.Single(), "1D"), dailyfeed, 2);
 
             var candleFeed = hourlyFeed;
             var context = new ShadowBreakoutContext(Strategy, interestedSymbols, new List<IIndicatorFeed> { shadowCandleFeed },

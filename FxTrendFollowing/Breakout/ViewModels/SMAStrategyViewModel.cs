@@ -18,7 +18,6 @@ using Carvers.Models.Indicators;
 using Carvers.Utilities;
 using FxTrendFollowing.Strategies;
 using IBApi;
-using Paths = Carvers.Utilities.Paths;
 
 namespace FxTrendFollowing.Breakout.ViewModels
 {
@@ -59,7 +58,7 @@ namespace FxTrendFollowing.Breakout.ViewModels
             var ma200Day = new MovingAverageFeed(Indicators.SMA200, candleFeed.Select(c => c.Val), candle => candle.Close, 200);
 
 
-            var haFeed = new ShadowCandleFeed(Paths.ShadowCandlesFor(interestedPairs.Single(), "1D"), candleFeed, 2);
+            var haFeed = new ShadowCandleFeed(GlobalPaths.ShadowCandlesFor(interestedPairs.Single(), "1D"), candleFeed, 2);
 
             var context = new SMAContext(Strategy, new List<IIndicator>
             {

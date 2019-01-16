@@ -146,13 +146,13 @@ namespace Carvers.Utilities
             {
                 case CurrencyPair pair:
                 {
-                    return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
+                    return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
                         $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
                 }
 
                 case Index index:
                 {
-                    return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
+                    return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
                         $"{index.ToString()}_M1_{dateTime.Year.ToString()}.csv");
                 }
 
@@ -163,19 +163,19 @@ namespace Carvers.Utilities
 
         public static string FxEURUSDFilePathGetter(DateTimeOffset dateTime)
         {
-                return Path.Combine(Paths.HistoricalData, dateTime.Year.ToString(),
+                return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
                     $"DAT_MT_EURUSD_M1_{dateTime.Year.ToString()}02.csv");
         }
 
 
         public static string FxIBDATAPathGetter(CurrencyPair cxPair)
         {
-            return Path.Combine(Paths.IBData,$"{cxPair.ToString()}.csv");
+            return Path.Combine(GlobalPaths.IBData,$"{cxPair.ToString()}.csv");
         }
 
         public static string CSFileGetter(Currency currency)
         {
-            return Path.Combine(Paths.FxStrenghts, $"{currency.Symbol}.csv");
+            return Path.Combine(GlobalPaths.FxStrenghts, $"{currency.Symbol}.csv");
         }
     }
 }

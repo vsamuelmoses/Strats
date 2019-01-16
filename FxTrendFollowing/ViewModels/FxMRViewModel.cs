@@ -15,7 +15,6 @@ using Carvers.Models;
 using Carvers.Infra.Extensions;
 using Carvers.Models.Extensions;
 using Carvers.Utilities;
-using Paths = Carvers.Utilities.Paths;
 
 namespace FxTrendFollowing.ViewModels
 {
@@ -63,12 +62,12 @@ namespace FxTrendFollowing.ViewModels
 
 
             CurrencyPairDataVMs = CurrencyPair.All()
-                .Select(pair => new HourlyCurrencyPairData(pair, lastLookbackPeriodCandles[pair],  Paths.IBData, options.ShouldCacheCandleFeed, (int)(options.LookbackPeriod.TotalSeconds / options.CandleFeedInterval.TotalSeconds)))
+                .Select(pair => new HourlyCurrencyPairData(pair, lastLookbackPeriodCandles[pair],  GlobalPaths.IBData, options.ShouldCacheCandleFeed, (int)(options.LookbackPeriod.TotalSeconds / options.CandleFeedInterval.TotalSeconds)))
                 .ToList();
 
             CsiFeedViewModel = new CSIFeedViewModel(CurrencyPairDataVMs);
 
-            var logger = new CSLogger(Utility.CSFileGetter, Paths.FxStrenghtsAll);
+            var logger = new CSLogger(Utility.CSFileGetter, GlobalPaths.FxStrenghtsAll);
 
             AllCurrencyStrength.CurrencyStrengthStream.Subscribe(val => Execute(val));
 
