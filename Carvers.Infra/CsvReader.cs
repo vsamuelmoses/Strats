@@ -17,6 +17,7 @@ namespace Carvers.Infra
             return text
                 .AsLines()
                 .Skip(skipCount) //for header
+                .Where(line => !string.IsNullOrWhiteSpace(line))
                 .Select(line => ctr(line.AsCsv()))
                 .Where(item => item != null);
         }

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
+using Carvers.Models.Indicators;
 
 namespace Carvers.Models.DataReaders
 {
@@ -39,6 +41,42 @@ namespace Carvers.Models.DataReaders
             catch (Exception)
             {
                 return MinuteCandle.NullMinuteCandle;
+            }
+        }
+
+        public static ShadowCandle CsvToCarversShadowCandle(string[] values)
+        {
+            try
+            {
+                var index = 0;
+                var date = DateTimeOffset.Parse(values[index++]);
+
+                if (!TimeSpan.TryParseExact(values[index++], "g", CultureInfo.CurrentCulture, out var time))
+                    return ShadowCandle.Null;
+
+                var timestamp = date;
+
+                if (!double.TryParse(values[index++], out var open))
+                    return ShadowCandle.Null;
+
+                if (!double.TryParse(values[index++], out var high))
+                    return ShadowCandle.Null;
+
+                if (!double.TryParse(values[index++], out var low))
+                    return ShadowCandle.Null;
+
+                if (!double.TryParse(values[index++], out var close))
+                    return ShadowCandle.Null;
+
+                if (!double.TryParse(values[index++], out var volume))
+                    return ShadowCandle.Null;
+
+                
+                return new ShadowCandle(new Ohlc(open, high, low, close, volume), timestamp);
+            }
+            catch (Exception)
+            {
+                return ShadowCandle.Null;
             }
         }
     }

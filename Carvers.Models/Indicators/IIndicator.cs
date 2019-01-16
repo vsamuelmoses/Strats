@@ -6,9 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Security.Cryptography;
-using System.Security.RightsManagement;
-using System.Windows.Forms;
 using Carvers.Infra;
 using Carvers.Infra.Extensions;
 using Carvers.Models.DataReaders;
@@ -158,19 +155,9 @@ namespace Carvers.Models.Indicators
 
     public class ShadowCandle: Candle, IIndicator
     {
-        public int SupportStrength { get; }
-        public int ResStrength { get; }
-
-        protected ShadowCandle(Ohlc ohlc, DateTimeOffset timeStamp)
+        public ShadowCandle(Ohlc ohlc, DateTimeOffset timeStamp)
             : base(ohlc, timeStamp)
         {
-        }
-
-        public ShadowCandle(Ohlc ohlc, DateTimeOffset timeStamp, TimeSpan span, int supportStrength, int resStrength)
-            : base(ohlc, timeStamp, span)
-        {
-            SupportStrength = supportStrength;
-            ResStrength = resStrength;
         }
 
         public bool IsGreen { get; set; }
@@ -179,27 +166,32 @@ namespace Carvers.Models.Indicators
         public bool HasValidValue => TimeStamp != DateTimeOffset.MinValue && TimeStamp != DateTimeOffset.MaxValue;
 
         public static readonly ShadowCandle Null = new ShadowCandle(
-            new Ohlc(double.NaN, double.NaN, double.NaN, double.NaN, double.NaN), DateTimeOffset.MinValue,
-            TimeSpan.MinValue, 1, 1);
+            new Ohlc(double.NaN, double.NaN, double.NaN, double.NaN, double.NaN), DateTimeOffset.MinValue);
     }
 
 
     public class ShadowCandleFeed
         : IIndicatorFeed<TimestampedIndicator<ShadowCandle>>
     {
-        public FileInfo File { get; }
         private readonly int _lookbackCount;
         private readonly Subject<TimestampedIndicator<ShadowCandle>> stream;
         private readonly List<ShadowCandle> lookback;
-        public ShadowCandleFeed(FileInfo file, IObservable<Timestamped<Candle>> candleStream, int lookbackCount)
+        public ShadowCandleFeed(FileInfo file, 
+            IObservable<Timestamped<Candle>> candleStream, 
+            int lookbackCount)
         {
-            File = file;
-            _writer = new FileWriter(File.FullName, 1);
             _lookbackCount = lookbackCount;
             stream = new Subject<TimestampedIndicator<ShadowCandle>>();
             lookback = new List<ShadowCandle>();
 
-            ShadowCandle = ShadowCandle.Null;
+            Enumerable.Range(1, lookbackCount).Foreach(i => AddToLookback(ShadowCandle.Null));
+
+            if (File.Exists(file.FullName))
+                CsvReader.ReadFile(file, CsvToModelCreators.CsvToCarversShadowCandle, skip: 0)
+                    .TakeLast(lookbackCount).Foreach(AddToLookback);
+
+            ShadowCandle = lookback.Last();
+            prevShadowCandle = lookback.Last();
 
             candleStream.Subscribe(feed =>
             {
@@ -228,10 +220,7 @@ namespace Carvers.Models.Indicators
                 //if (candle.Close > prevCandle.Low && candle.Close < prevCandle.High)
                 if (candle.Low > prevShadowCandle.Low && candle.High < prevShadowCandle.High)
                 {
-                    lookback.Add(ShadowCandle);
-                    if (lookback.Count > lookbackCount)
-                        lookback.RemoveAt(0);
-
+                    //AddToLookback(/*prevShadowCandle*/);
                     stream.OnNext(new TimestampedIndicator<ShadowCandle>(feed.Timestamp, ShadowCandle));
                 }
                 else
@@ -245,12 +234,13 @@ namespace Carvers.Models.Indicators
                     var low = prevShadowCandle.Low;
                     
                     ShadowCandle = new ShadowCandle(new Ohlc(prevShadowCandle.Open, high, low, prevShadowCandle.Close, prevShadowCandle.Ohlc.Volume),
-                        candle.TimeStamp, candle.Span, supportStrength, resistanceStrength);
+                        candle.TimeStamp);
                     ShadowCandle.IsGreen = isgreen;
 
-                    lookback.Add(ShadowCandle);
-                    if (lookback.Count > lookbackCount)
-                        lookback.RemoveAt(0);
+                    AddToLookback(ShadowCandle);
+                    //lookback.Add(ShadowCandle);
+                    //if (lookback.Count > lookbackCount)
+                    //    lookback.RemoveAt(0);
 
                     stream.OnNext(new TimestampedIndicator<ShadowCandle>(feed.Timestamp, ShadowCandle));
                 }
@@ -258,17 +248,21 @@ namespace Carvers.Models.Indicators
             });
         }
 
+        private void AddToLookback(ShadowCandle candle)
+        {
+            lookback.Add(candle);
+            if (lookback.Count > _lookbackCount)
+                lookback.RemoveAt(0);
+        }
+
         private Candle prevCandle = Candle.Null;
         private Candle prevShadowCandle = Candle.Null;
-        private readonly FileWriter _writer;
 
-        public Timestamped<ShadowCandle> TsShadowCandle { get; private set; }
         public ShadowCandle ShadowCandle { get; private set; }
         public IEnumerable<ShadowCandle> Lookback => lookback;
-        
         public IObservable<TimestampedIndicator<ShadowCandle>> Stream => stream;
-
     }
+
     public class HeikinAshiCandleFeed
         : IIndicatorFeed<HeikinAshiCandle>
     {
@@ -311,30 +305,24 @@ namespace Carvers.Models.Indicators
     {
         private readonly Subject<TimestampedIndicator<PercentageIndicator>> stream;
         private readonly List<Candle> lookbackCandles;
-        private readonly List<ShadowCandle> shadowCandles;
-
-        public ShadowStrengthFeed(IObservable<Timestamped<ShadowCandle>> shadowStream, 
+        public ShadowStrengthFeed(
+            ShadowCandleFeed shadowFeed,
             IObservable<Timestamped<Candle>> candleStream)
         {
             stream = new Subject<TimestampedIndicator<PercentageIndicator>>();
             lookbackCandles = new List<Candle>();
-            shadowCandles = new List<ShadowCandle>();
-            PrevShadowCandle = ShadowCandle.Null;
             ShadowStrengths = new List<Timestamped<double>>();
-
+            var shadowStream = shadowFeed.Stream;
             candleStream
                 .Zip(shadowStream, Tuple.Create)
                 .Subscribe(feed =>
                 {
-                    
-
-
                     Debug.Assert(feed.Item1.Timestamp == feed.Item2.Timestamp);
                     var candle = feed.Item1.Val;
                     var shadow = feed.Item2.Val;
                     var ts = feed.Item2.Timestamp;
 
-                    if (ts.Date == new DateTime(2017, 01, 04))
+                    if (ts.DateTime == new DateTime(2017, 01, 10, 00,0,0))
                     {
                         var breakpoint = true;
                     }
@@ -355,31 +343,14 @@ namespace Carvers.Models.Indicators
                     prevCandle = candle;
                     AddToLookback(candle);
 
-                    if (shadow != PrevShadowCandle)
-                    {
-                        PrevShadowCandle = shadow;
-                        shadowCandles.Add(shadow);
-                    }
+                    var shadeCandle = (shadowFeed.Lookback.LastOrDefault(sh => sh.TimeStamp.Date < candle.TimeStamp.Date));
+                    var tupStrength = Tuple.Create(0d, 0d);
+                    if (shadeCandle != null)
+                        tupStrength = Tuple.Create((candle.High - shadeCandle.Low).PercentageOf(shadeCandle.CandleLength()), (shadeCandle.High - candle.Low).PercentageOf(shadeCandle.CandleLength()));
 
+                    var val = tupStrength.Item1 - tupStrength.Item2;
 
-                    var tupStrength = lookbackCandles
-                        .Take(24)
-                        .Select(c =>
-                        {
-                            var shadeCandle = (shadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < c.TimeStamp.Date));
-
-                            if (shadeCandle == null)
-                                return Tuple.Create(0d, 0d);
-
-                            return Tuple.Create((c.High - shadeCandle.Low).PercentageOf(shadeCandle.CandleLength()), (shadeCandle.High - c.Low).PercentageOf(shadeCandle.CandleLength()));
-                        }).ToList();
-
-
-                    var absStrength = tupStrength.Last();
-
-                    PrevIndicator = new PercentageIndicator((absStrength.Item1 - absStrength.Item2).AttachTimeStamp(candle.TimeStamp));
-                    
-
+                    PrevIndicator = new PercentageIndicator(val.AttachTimeStamp(candle.TimeStamp));
 
                     ShadowStrength = shadow.Low + shadow.CandleLength() / 2 + (shadow.CandleLength() * PrevIndicator.Value.Val * 0.01);
                     ShadowStrengths.Add(ShadowStrength.Value.AttachTimeStamp(feed.Item1.Val.TimeStamp));
@@ -387,7 +358,6 @@ namespace Carvers.Models.Indicators
                         ShadowStrengths.RemoveAt(0);
 
                     stream.OnNext(new TimestampedIndicator<PercentageIndicator>(feed.Item1.Timestamp, PrevIndicator));
-
                 });
         }
 
@@ -412,7 +382,7 @@ namespace Carvers.Models.Indicators
 
         public PercentageIndicator PrevIndicator { get; private set; }
         private Candle prevCandle = Candle.Null;
-        public ShadowCandle PrevShadowCandle { get; private set; }
+        //public ShadowCandle PrevShadowCandle { get; private set; }
         private readonly FileWriter _writer;
         public IObservable<TimestampedIndicator<PercentageIndicator>> Stream => stream;
     }
