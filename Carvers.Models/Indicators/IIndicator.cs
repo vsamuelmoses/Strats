@@ -304,13 +304,11 @@ namespace Carvers.Models.Indicators
         : IIndicatorFeed<TimestampedIndicator<PercentageIndicator>>
     {
         private readonly Subject<TimestampedIndicator<PercentageIndicator>> stream;
-        private readonly List<Candle> lookbackCandles;
         public ShadowStrengthFeed(
             ShadowCandleFeed shadowFeed,
             IObservable<Timestamped<Candle>> candleStream)
         {
             stream = new Subject<TimestampedIndicator<PercentageIndicator>>();
-            lookbackCandles = new List<Candle>();
             ShadowStrengths = new List<Timestamped<double>>();
             var shadowStream = shadowFeed.Stream;
             candleStream
@@ -320,60 +318,67 @@ namespace Carvers.Models.Indicators
                     Debug.Assert(feed.Item1.Timestamp == feed.Item2.Timestamp);
                     var candle = feed.Item1.Val;
                     var shadow = feed.Item2.Val;
-                    var ts = feed.Item2.Timestamp;
-
-                    if (ts.DateTime == new DateTime(2017, 01, 10, 00,0,0))
-                    {
-                        var breakpoint = true;
-                    }
-                    if (candle == null || shadow == null)
-                    {
-                        PrevIndicator = new PercentageIndicator(0d.AttachTimeStamp(feed.Item1.Timestamp));
-                        Publish(feed.Item1.Timestamp, PrevIndicator);
-                        return;
-                    }
-
-
-                    if (candle == prevCandle)
-                    {
-                        Publish(feed.Item1.Timestamp, PrevIndicator);
-                        return;
-                    }
-
-                    prevCandle = candle;
-                    AddToLookback(candle);
-
-                    var shadeCandle = (shadowFeed.Lookback.LastOrDefault(sh => sh.TimeStamp.Date < candle.TimeStamp.Date));
-                    var tupStrength = Tuple.Create(0d, 0d);
-                    if (shadeCandle != null)
-                        tupStrength = Tuple.Create((candle.High - shadeCandle.Low).PercentageOf(shadeCandle.CandleLength()), (shadeCandle.High - candle.Low).PercentageOf(shadeCandle.CandleLength()));
-
-                    var val = tupStrength.Item1 - tupStrength.Item2;
-
-                    PrevIndicator = new PercentageIndicator(val.AttachTimeStamp(candle.TimeStamp));
-
-                    ShadowStrength = shadow.Low + shadow.CandleLength() / 2 + (shadow.CandleLength() * PrevIndicator.Value.Val * 0.01);
-                    ShadowStrengths.Add(ShadowStrength.Value.AttachTimeStamp(feed.Item1.Val.TimeStamp));
-                    if(ShadowStrengths.Count > 4)
-                        ShadowStrengths.RemoveAt(0);
-
-                    stream.OnNext(new TimestampedIndicator<PercentageIndicator>(feed.Item1.Timestamp, PrevIndicator));
+                   
+                    ComputeShadowStrength(feed.Item1.Timestamp, candle, shadow);
                 });
         }
 
-        private void AddToLookback(Candle candle)
+        public ShadowStrengthFeed(
+            IEnumerable<ShadowCandle> shadowCandles,
+            IObservable<Timestamped<Candle>> candleStream)
         {
-            lookbackCandles.Add(candle);
+            stream = new Subject<TimestampedIndicator<PercentageIndicator>>();
+            ShadowStrengths = new List<Timestamped<double>>();
 
-            if (lookbackCandles.Count > 24)
-                lookbackCandles.RemoveAt(0);
+            candleStream
+                .Subscribe(c =>
+                {
+                    var candle = c.Val;
 
+                    var shadow = ShadowCandle.Null;
+                    if(c.Val != null)
+                        shadow = shadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < c.Val.TimeStamp.Date);
+
+                    ComputeShadowStrength(c.Timestamp, candle, shadow);
+                });
+        }
+
+
+
+        private void ComputeShadowStrength(DateTimeOffset ts, Candle candle, ShadowCandle shadow)
+        {
+            if (candle == null || shadow == null)
+            {
+                PrevIndicator = new PercentageIndicator(0d.AttachTimeStamp(ts));
+                Publish(ts, PrevIndicator);
+                return;
+            }
+            
+            if (candle == prevCandle)
+            {
+                Publish(ts, PrevIndicator);
+                return;
+            }
+
+            prevCandle = candle;
+
+            var tupStrength = Tuple.Create((candle.High - shadow.Low).PercentageOf(shadow.CandleLength()),
+                (shadow.High - candle.Low).PercentageOf(shadow.CandleLength()));
+            var val = tupStrength.Item1 - tupStrength.Item2;
+
+            PrevIndicator = new PercentageIndicator(val.AttachTimeStamp(candle.TimeStamp));
+
+            ShadowStrength = shadow.Low + shadow.CandleLength() / 2 + (shadow.CandleLength() * PrevIndicator.Value.Val * 0.01);
+            ShadowStrengths.Add(ShadowStrength.Value.AttachTimeStamp(ts));
+            if (ShadowStrengths.Count > 4)
+                ShadowStrengths.RemoveAt(0);
+
+            stream.OnNext(new TimestampedIndicator<PercentageIndicator>(ts, PrevIndicator));
         }
 
         private void Publish(DateTimeOffset ts, PercentageIndicator percentage)
         {
             stream.OnNext(new TimestampedIndicator<PercentageIndicator>(ts, percentage));
-
         }
 
         public List<Timestamped<double>> ShadowStrengths { get; private set; }
@@ -382,7 +387,6 @@ namespace Carvers.Models.Indicators
 
         public PercentageIndicator PrevIndicator { get; private set; }
         private Candle prevCandle = Candle.Null;
-        //public ShadowCandle PrevShadowCandle { get; private set; }
         private readonly FileWriter _writer;
         public IObservable<TimestampedIndicator<PercentageIndicator>> Stream => stream;
     }

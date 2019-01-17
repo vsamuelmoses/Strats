@@ -19,7 +19,7 @@ namespace ShadowStrengthStrategy.Models
                     new OrderInfo(timeStamp, context.Instrument, context.Strategy, entryPrice.USD(),
                         100000));
                 context.Strategy.Open(shortSellOrder);
-                return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.Indicators,
+                return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.ShadowIndicatorFile, context.Indicators,
                     context.LookbackCandles, context.ContextInfos);
             }
 
@@ -30,7 +30,7 @@ namespace ShadowStrengthStrategy.Models
                 context.Strategy.Open(new BuyOrder(
                     new OrderInfo(timeStamp, context.Instrument, context.Strategy, entryPrice.USD(),
                         100000)));
-                return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.Indicators,
+                return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.ShadowIndicatorFile, context.Indicators,
                     context.LookbackCandles, context.ContextInfos);
             }
 
@@ -38,7 +38,7 @@ namespace ShadowStrengthStrategy.Models
         }
 
         public static SssContext AddContextInfo(this SssContext context, IContextInfo info)
-            => new SssContext(context.Strategy, context.LogFile, context.Instrument, context.Indicators, context.LookbackCandles,
+            => new SssContext(context.Strategy, context.LogFile, context.Instrument, context.ShadowIndicatorFile, context.Indicators, context.LookbackCandles,
                 context.ContextInfos.ToList().Append(info).ToList());
 
         public static SssContext ReplaceContextInfo(this SssContext context,
@@ -52,7 +52,7 @@ namespace ShadowStrengthStrategy.Models
             if (oldInfo != null)
                 contextInfos.Remove(oldInfo);
 
-            return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.Indicators,
+            return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.ShadowIndicatorFile, context.Indicators,
                 context.LookbackCandles,
                 contextInfos.Append(newInfo).ToList());
         }

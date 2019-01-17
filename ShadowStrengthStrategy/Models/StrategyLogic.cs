@@ -28,7 +28,9 @@ namespace ShadowStrengthStrategy.Models
                             if(ctx.Strategy.OpenOrder != null)
                                 return PredicateResult.Fail;
 
-                            var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
+                            var shadowCandle = (ctx.ShadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < ctx.LastCandle.TimeStamp.Date));
+
+                            //var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
                             var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
 
                             var shouldBuy = shadowStrengthFeed.ShadowStrengths.All(v => v.Val > shadowCandle.MiddlePoint() && v.Val < shadowCandle.High)
@@ -60,9 +62,8 @@ namespace ShadowStrengthStrategy.Models
                         return ctx;
                     }
                     var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
-                    var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
-
-
+                    var shadowCandle = (ctx.ShadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < ctx.LastCandle.TimeStamp.Date));
+                    
                     var shouldBuy = shadowStrengthFeed.ShadowStrengths.All(v => v.Val > shadowCandle.MiddlePoint() && v.Val < shadowCandle.High)
                                     && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
 

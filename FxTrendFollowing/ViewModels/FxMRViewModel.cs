@@ -50,24 +50,18 @@ namespace FxTrendFollowing.ViewModels
 
 
             var lastLookbackPeriodCandles = CurrencyPair.All()
-                 .Select(pair => {
-                     return new KeyValuePair<CurrencyPair, IEnumerable<Candle>>(pair, Enumerable.Empty<Candle>());
-
-                     //var lookbackPeriodCandles = File.ReadAllLines(Path.Combine(Paths.IBData, $"{pair}.csv"))
-                     //    .TakeLast((int)(options.LookbackPeriod.TotalSeconds / candleFeedInterval.TotalSeconds))
-                     //    .Select(str => Utility.IBDataCandleReader(str.AsCsv(), candleFeedInterval));
-
-                     //return new KeyValuePair<CurrencyPair, IEnumerable<Candle>>(pair, lookbackPeriodCandles);
-                 }).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                 .Select(pair => new KeyValuePair<CurrencyPair, IEnumerable<Candle>>(pair, Enumerable.Empty<Candle>()))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
 
             CurrencyPairDataVMs = CurrencyPair.All()
-                .Select(pair => new HourlyCurrencyPairData(pair, lastLookbackPeriodCandles[pair],  GlobalPaths.IBData, options.ShouldCacheCandleFeed, (int)(options.LookbackPeriod.TotalSeconds / options.CandleFeedInterval.TotalSeconds)))
+                .Select(pair => new HourlyCurrencyPairData(pair, lastLookbackPeriodCandles[pair],  
+                    GlobalPaths.FxHistoricalData, options.ShouldCacheCandleFeed, (int)(options.LookbackPeriod.TotalSeconds / options.CandleFeedInterval.TotalSeconds)))
                 .ToList();
 
             CsiFeedViewModel = new CSIFeedViewModel(CurrencyPairDataVMs);
 
-            var logger = new CSLogger(Utility.CSFileGetter, GlobalPaths.FxStrenghtsAll);
+            var logger = new CSLogger(Paths.CSFileGetter, Paths.FxStrenghtsAll);
 
             AllCurrencyStrength.CurrencyStrengthStream.Subscribe(val => Execute(val));
 
@@ -449,6 +443,16 @@ namespace FxTrendFollowing.ViewModels
             {
                 status = value; OnPropertyChanged();
             }
+        }
+    }
+
+    public static class Paths
+    {
+        public const string FxStrenghtsAll = @"../../Logs/FxStrengthsAll.csv";
+
+        public static string CSFileGetter(Currency currency)
+        {
+            return Path.Combine(Paths.FxStrenghtsAll, $"{currency.Symbol}.csv");
         }
     }
 }

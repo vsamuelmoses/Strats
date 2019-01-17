@@ -105,7 +105,7 @@ namespace FxTrendFollowing.Strategies
 
                 var hourlyFeed = new AggreagateCandleFeed(originalFeed, TimeSpan.FromHours(1)).Stream;
                 var dailyfeed = new AggreagateCandleFeed(hourlyFeed, TimeSpan.FromDays(1)).Stream;
-                var shadowCandleFeed = new ShadowCandleFeed(GlobalPaths.ShadowCandlesFor(instrument, "1D"), dailyfeed, 3);
+                var shadowCandleFeed = new ShadowCandleFeed(GlobalPaths.ShadowCandlesFor(instrument, "1D", Ibtws is IBTWS), dailyfeed, 3);
 
                 //var hourlyCandleFile = new FileWriter(Paths.IBDataCandlesFor(instrument, "1H").FullName, 1);
                 //hourlyFeed.Subscribe(candle => hourlyCandleFile.Write(candle.ToCsv()));
@@ -113,7 +113,7 @@ namespace FxTrendFollowing.Strategies
                 //var dailyCandleFile = new FileWriter(Paths.IBDataCandlesFor(instrument, "1D").FullName, 1);
                 //dailyfeed.Subscribe(candle => dailyCandleFile.Write(candle.ToCsv()));
 
-                var shadowCandleFile = new FileWriter(GlobalPaths.ShadowCandlesFor(instrument, "1D").FullName, 1);
+                var shadowCandleFile = new FileWriter(GlobalPaths.ShadowCandlesFor(instrument, "1D", Ibtws is IBTWS).FullName, 1);
                 shadowCandleFeed.Stream
                     .Select(c => c.Val)
                     .DistinctUntilChanged()

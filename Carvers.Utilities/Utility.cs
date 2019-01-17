@@ -153,29 +153,12 @@ namespace Carvers.Utilities
                 case Index index:
                 {
                     return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
-                        $"{index.ToString()}_M1_{dateTime.Year.ToString()}.csv");
+                        $"{index}_M1_{dateTime.Year.ToString()}.csv");
                 }
 
                 default:
                     throw new Exception("Unknown Symbol");
             }
-        }
-
-        public static string FxEURUSDFilePathGetter(DateTimeOffset dateTime)
-        {
-                return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
-                    $"DAT_MT_EURUSD_M1_{dateTime.Year.ToString()}02.csv");
-        }
-
-
-        public static string FxIBDATAPathGetter(CurrencyPair cxPair)
-        {
-            return Path.Combine(GlobalPaths.IBData,$"{cxPair.ToString()}.csv");
-        }
-
-        public static string CSFileGetter(Currency currency)
-        {
-            return Path.Combine(GlobalPaths.FxStrenghts, $"{currency.Symbol}.csv");
         }
     }
 }
