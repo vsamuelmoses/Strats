@@ -25,33 +25,33 @@ namespace CSIDataProvider
             {
                 DateTimeOffset timestamp;
                 if (!DateTimeOffset.TryParseExact(values[0], "yyyyMMdd", null, DateTimeStyles.AssumeUniversal, out timestamp))
-                    return DailyCandle.NullDailyCandle;
+                    return DailyCandle.Null;
 
                 double open;
                 if (!double.TryParse(values[1], out open))
-                    return DailyCandle.NullDailyCandle;
+                    return DailyCandle.Null;
 
                 double high;
                 if (!double.TryParse(values[2], out high))
-                    return DailyCandle.NullDailyCandle;
+                    return DailyCandle.Null;
 
                 double low;
                 if (!double.TryParse(values[3], out low))
-                    return DailyCandle.NullDailyCandle;
+                    return DailyCandle.Null;
 
                 double close;
                 if (!double.TryParse(values[4], out close))
-                    return DailyCandle.NullDailyCandle;
+                    return DailyCandle.Null;
 
                 double volume;
                 if (!double.TryParse(values[5], out volume))
-                    return DailyCandle.NullDailyCandle;
+                    return DailyCandle.Null;
 
                 return new DailyCandle(new Ohlc(open / 100, high / 100, low / 100, close / 100, volume * 100), timestamp);
             }
             catch (Exception)
             {
-                return DailyCandle.NullDailyCandle;
+                return DailyCandle.Null;
             }
         }
 

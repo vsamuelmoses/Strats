@@ -117,7 +117,7 @@ namespace FxTrendFollowing.Strategies
                 shadowCandleFeed.Stream
                     .Select(c => c.Val)
                     .DistinctUntilChanged()
-                    .Subscribe(candle => shadowCandleFile.Write(candle.ToCsv()));
+                    .Subscribe(candle => shadowCandleFile.WriteWithTs(candle.ToCsv()));
 
                 var shadowStrength = new ShadowStrengthFeed(shadowCandleFeed, hourlyFeed);
 
@@ -359,7 +359,7 @@ namespace FxTrendFollowing.Strategies
         {
             if (side == Side.ShortSell)
             {
-               context.LogFile.Write($"Placing SELL Order at {entryPrice}");
+               context.LogFile.WriteWithTs($"Placing SELL Order at {entryPrice}");
 
                 var shortSellOrder = new ShortSellOrder(
                     new OrderInfo(timeStamp, context.Instrument, context.Strategy, entryPrice.USD(),
@@ -371,7 +371,7 @@ namespace FxTrendFollowing.Strategies
 
             if (side == Side.Buy)
             {
-                context.LogFile.Write($"Placing BUY Order at {entryPrice}");
+                context.LogFile.WriteWithTs($"Placing BUY Order at {entryPrice}");
                 
                 context.Strategy.Open(new BuyOrder(
                     new OrderInfo(timeStamp, context.Instrument, context.Strategy, entryPrice.USD(),
@@ -453,7 +453,7 @@ namespace FxTrendFollowing.Strategies
                 {
                     if (ctx.Strategy.OpenOrder != null)
                     {
-                        ctx.LogFile.Write($"Could not place the order: Open Order exists, {ctx.Strategy.OpenOrder.ToCsv()}");
+                        ctx.LogFile.WriteWithTs($"Could not place the order: Open Order exists, {ctx.Strategy.OpenOrder.ToCsv()}");
                         return ctx;
                     }
                     var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();

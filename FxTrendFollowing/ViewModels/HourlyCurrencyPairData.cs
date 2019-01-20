@@ -47,7 +47,7 @@ namespace FxTrendFollowing.ViewModels
                 Add(candle);
 
                 if (shouldCache)
-                    fileWriter.Write(candle.ToCsv());
+                    fileWriter.WriteWithTs(candle.ToCsv());
             }
         }
 

@@ -11,7 +11,10 @@ namespace Carvers.IBApi
     public class IBTWS : IEngine
     {
         private readonly Subject<RealTimeBarMessage> realTimeBarMsgSubject;
+        private Subject<HistoricalDataMessage> historicalMsgSubject;
+
         public IObservable<RealTimeBarMessage> RealTimeBarStream => realTimeBarMsgSubject;
+        public IObservable<HistoricalDataMessage> HistoricalDataStream => historicalMsgSubject;
 
         private readonly Subject<IBTWSMessage> ibtwsMessageSubject;
         public IObservable<IBTWSMessage> IbtwsMessageStream => ibtwsMessageSubject;
@@ -24,7 +27,7 @@ namespace Carvers.IBApi
         public IObservable<IBTWSConnectionState> IbtwsConnectionStateStream => ibtwsConnectionStateSubject;
 
         public static readonly string LocalHost = "127.0.0.1";
-        public static readonly int IBPaperTradingPort = 7496;
+        public static readonly int IBPaperTradingPort = 7497;
         public static readonly int ClientId = 1;
         public const int HISTORICAL_ID_BASE = 30000000;
         public const int RT_BARS_ID_BASE = 40000000;
@@ -41,6 +44,15 @@ namespace Carvers.IBApi
 
             realTimeBarMsgSubject = new Subject<RealTimeBarMessage>();
             ibClient.RealtimeBar += message => realTimeBarMsgSubject.OnNext(message);
+
+            historicalMsgSubject = new Subject<HistoricalDataMessage>();
+            ibClient.HistoricalData += message => historicalMsgSubject.OnNext(message);
+            ibClient.HistoricalDataUpdate += message => historicalMsgSubject.OnNext(message);
+            ibClient.HistoricalDataEnd += message =>
+            {
+                historicalMsgSubject.OnCompleted();
+                historicalMsgSubject = new Subject<HistoricalDataMessage>();
+            };
 
             ibtwsErrorSubject = new Subject<IBTWSErrorMessage>();
             ibClient.Error += (a1, a2, a3, e) => ibtwsErrorSubject.OnNext(new IBTWSErrorMessage(a1, a2, a3, e));
@@ -123,9 +135,9 @@ namespace Carvers.IBApi
             ibClient.ClientSocket.reqRealTimeBars(tickerId + RT_BARS_ID_BASE, contract, 5, whatToShow, useRTH, null);
         }
 
-        public void AddHistoricalDataRequest(Contract contract, string endDateTime, string durationString, string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate)
+        public void AddHistoricalDataRequest(int tickerId, Contract contract, string endDateTime, string durationString, string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate)
         {
-            ibClient.ClientSocket.reqHistoricalData(1 + HISTORICAL_ID_BASE, contract, endDateTime, durationString, barSizeSetting, whatToShow, useRTH, 1, keepUpToDate, new List<TagValue>());
+            ibClient.ClientSocket.reqHistoricalData(tickerId + HISTORICAL_ID_BASE, contract, endDateTime, durationString, barSizeSetting, whatToShow, useRTH, 1, keepUpToDate, new List<TagValue>());
         }
 
         public void PlaceOrder(Contract contract, Order order)

@@ -15,7 +15,7 @@ namespace Carvers.Models
             return $"{TimeStamp:dd/MM/yyyy},{Ohlc.ToCsv()}";
         }
 
-        public static DailyCandle NullDailyCandle => null;
+        public static DailyCandle Null => null;
     }
 
 

@@ -14,12 +14,13 @@ namespace Carvers.IBApi
 
         bool IsConnected { get; }
         int NextOrderId { get; }
+        IObservable<HistoricalDataMessage> HistoricalDataStream { get; }
         bool Connect(string host, int port, int clientId);
         void Disconnect();
         void AddRealtimeDataRequests(IEnumerable<Tuple<int, Contract>> requests);
         void AddRealtimeDataRequest(int tickerId, Contract contract);
         void AddRealtimeDataRequest(int tickerId, Contract contract, string whatToShow, bool useRTH);
-        void AddHistoricalDataRequest(Contract contract, string endDateTime, string durationString, string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate);
+        void AddHistoricalDataRequest(int tickerId, Contract contract, string endDateTime, string durationString, string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate);
         void PlaceOrder(Contract contract, Order order);
     }
 }

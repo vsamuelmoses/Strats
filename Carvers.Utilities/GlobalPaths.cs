@@ -14,18 +14,34 @@ namespace Carvers.Utilities
         public const string FxIbData = IbData + @"Fx\";
 
         public const string StrategyLogs = @"..\Logs\Strategies\";
-        public static FileInfo StrategySummaryFile(Strategy strategy, Symbol symbol)
+        public static FileInfo StrategySummaryFile(Strategy strategy, Symbol symbol, string optionalAppend = null)
         {
-            return new FileInfo(StrategyLogs + $"{strategy.StrategyName}\\{symbol}.txt");
+            var append = optionalAppend == null ? string.Empty : optionalAppend; 
+            return new FileInfo(StrategyLogs + $"{strategy.StrategyName}\\{symbol}.{optionalAppend}.txt");
+        }
+
+        public static FileInfo CandleFileFor(Symbol symbol, string span, bool liveData)
+        {
+            return liveData 
+                ? new FileInfo(FxIbData + $@"{symbol}\DAT_IBData_{symbol}_{span}.csv") 
+                : new FileInfo(FxHistoricalData + $@"{symbol}\DAT_MT_{symbol}_{span}.csv");
         }
 
         public static FileInfo ShadowCandlesFor(Symbol symbol, string span, bool liveData)
         {
-            string folder = HistoricalData;
+            string folder = string.Empty;
 
             if (liveData)
-                folder = IbData;
+            {
+                folder = symbol is CurrencyPair ? FxIbData : IbData;
+            }
+            else
+            {
+                folder = symbol is CurrencyPair ? FxHistoricalData : HistoricalData;
+            }
 
+
+            
             return new FileInfo(folder + $@"{symbol}\{symbol}.Shadow.{span}.csv");
         }
     }

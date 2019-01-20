@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Carvers.IBApi;
 using Carvers.Models;
 using Carvers.Models.Extensions;
 using Carvers.Models.Indicators;
@@ -13,19 +14,21 @@ namespace ShadowStrengthStrategy.Models
         {
             if (side == Side.ShortSell)
             {
-                context.LogFile.Write($"Placing SELL Order at {entryPrice}");
+                context.LogFile.WriteWithTs($"Placing SELL Order at {entryPrice}");
 
                 var shortSellOrder = new ShortSellOrder(
                     new OrderInfo(timeStamp, context.Instrument, context.Strategy, entryPrice.USD(),
                         100000));
                 context.Strategy.Open(shortSellOrder);
+
+
                 return new SssContext(context.Strategy, context.LogFile, context.Instrument, context.ShadowIndicatorFile, context.Indicators,
                     context.LookbackCandles, context.ContextInfos);
             }
 
             if (side == Side.Buy)
             {
-                context.LogFile.Write($"Placing BUY Order at {entryPrice}");
+                context.LogFile.WriteWithTs($"Placing BUY Order at {entryPrice}");
 
                 context.Strategy.Open(new BuyOrder(
                     new OrderInfo(timeStamp, context.Instrument, context.Strategy, entryPrice.USD(),

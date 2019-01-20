@@ -13,6 +13,16 @@ namespace Carvers.IBApi.Extensions
             return new Candle(new Ohlc(msg.Open, msg.High, msg.Low, msg.Close, msg.Volume), dt, span);
         }
 
+        public static Candle ToDailyCandle(this HistoricalDataMessage msg)
+        {
+
+            DateTime dt;
+            if(DateTime.TryParseExact(msg.Date, "yyyyMMdd", null, DateTimeStyles.None , out dt))
+                return new DailyCandle(new Ohlc(msg.Open, msg.High, msg.Low, msg.Close, msg.Volume), dt);
+
+            throw new Exception("Unexpected error parsing datetime");
+        }
+
         public static DateTime UnixEpochToLocalTime(this long epoch)
         {
             var start = new DateTime(1970, 1, 1, 0, 0, 0);
@@ -22,6 +32,8 @@ namespace Carvers.IBApi.Extensions
         public static bool IsForCurrencyPair(this RealTimeBarMessage msg, Symbol pair)
             => pair.UniqueId == msg.RequestId - IBTWS.RT_BARS_ID_BASE;
 
+        public static bool IsForCurrencyPair(this HistoricalDataMessage msg, Symbol pair)
+            => pair.UniqueId == msg.RequestId - IBTWS.HISTORICAL_ID_BASE;
 
         public static int ToUniqueId(this RealTimeBarMessage msg)
             => msg.RequestId - IBTWS.RT_BARS_ID_BASE;

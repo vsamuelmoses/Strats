@@ -161,4 +161,16 @@ namespace Carvers.Utilities
             }
         }
     }
+
+    public static class DateTimeUtility
+    {
+        public static DateTime YesterdayDate
+            => DateBefore(1.Days());
+
+        public static DateTime DateBefore(TimeSpan daysSpan)
+            => DateTime.Now.Date.Subtract(daysSpan);
+
+        public static TimeSpan Days(this int val)
+            => TimeSpan.FromDays(val);
+    }
 }

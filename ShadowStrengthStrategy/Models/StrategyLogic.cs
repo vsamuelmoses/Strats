@@ -25,14 +25,17 @@ namespace ShadowStrengthStrategy.Models
                     {
                         ctx =>
                         {
-                            if(ctx.Strategy.OpenOrder != null)
+                            if (ctx.Strategy.OpenOrder != null)
+                            {
+                                ctx.LogFile.WriteWithTs($"Could not place the order: Open Order exists, {ctx.Strategy.OpenOrder.ToCsv()}");
                                 return PredicateResult.Fail;
 
+                            }
+
+
                             var shadowCandle = (ctx.ShadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < ctx.LastCandle.TimeStamp.Date));
-
-                            //var shadowCandle = ctx.Indicators.OfType<ShadowCandleFeed>().Single().ShadowCandle;
                             var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
-
+                            
                             var shouldBuy = shadowStrengthFeed.ShadowStrengths.All(v => v.Val > shadowCandle.MiddlePoint() && v.Val < shadowCandle.High)
                                             && Math.Abs(shadowStrengthFeed.ShadowStrength.GetValueOrDefault() - ctx.LastCandle.Close) >= 0.0010
                                             && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
@@ -41,14 +44,10 @@ namespace ShadowStrengthStrategy.Models
                                              && Math.Abs(shadowStrengthFeed.ShadowStrength.GetValueOrDefault() - ctx.LastCandle.Close) >= 0.0010
                                              && ctx.LastCandle.Close > shadowCandle.MiddlePoint();
 
-                            if (ctx.LastCandle.TimeStamp.DateTime == new DateTime(2017, 01, 10, 06, 0, 0))
-                            {
-                                Debug.WriteLine($"ShadowStrengths: {string.Join(",", shadowStrengthFeed.ShadowStrengths.Select(s => s.Val))}");
-                                Debug.WriteLine($"ShadowCandle: {shadowCandle.ToCsv()}");
-                                Debug.WriteLine($"ShadowMidPoint: {shadowCandle.MiddlePoint()}");
-                                Debug.WriteLine($"Close: {ctx.LastCandle.Close}");
-                            }
-
+                            ctx.LogFile.WriteWithTs($"ShadowCandle, {shadowCandle.ToCsv()}");
+                            ctx.LogFile.WriteWithTs($"ShadowStrengthsLookback, {string.Join(",", shadowStrengthFeed.ShadowStrengths.Select(v => v.Val))}");
+                            ctx.LogFile.WriteWithTs($"Last Candle,  {ctx.LastCandle.ToCsv()}");
+                            ctx.LogFile.WriteWithTs($"ShouldBuy,  {shouldBuy}, ShouldSell, {shouldSell}");
 
                             return (shouldBuy || shouldSell).ToPredicateResult();
                         }
@@ -58,16 +57,18 @@ namespace ShadowStrengthStrategy.Models
                 {
                     if (ctx.Strategy.OpenOrder != null)
                     {
-                        ctx.LogFile.Write($"Could not place the order: Open Order exists, {ctx.Strategy.OpenOrder.ToCsv()}");
+                        ctx.LogFile.WriteWithTs($"Could not place the order: Open Order exists, {ctx.Strategy.OpenOrder.ToCsv()}");
                         return ctx;
                     }
                     var shadowStrengthFeed = ctx.Indicators.OfType<ShadowStrengthFeed>().Single();
                     var shadowCandle = (ctx.ShadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < ctx.LastCandle.TimeStamp.Date));
-                    
+
                     var shouldBuy = shadowStrengthFeed.ShadowStrengths.All(v => v.Val > shadowCandle.MiddlePoint() && v.Val < shadowCandle.High)
+                                    && Math.Abs(shadowStrengthFeed.ShadowStrength.GetValueOrDefault() - ctx.LastCandle.Close) >= 0.0010
                                     && ctx.LastCandle.Close < shadowCandle.MiddlePoint();
 
                     var shouldSell = shadowStrengthFeed.ShadowStrengths.All(v => v.Val < shadowCandle.MiddlePoint() && v.Val > shadowCandle.Low)
+                                     && Math.Abs(shadowStrengthFeed.ShadowStrength.GetValueOrDefault() - ctx.LastCandle.Close) >= 0.0010
                                      && ctx.LastCandle.Close > shadowCandle.MiddlePoint();
 
 

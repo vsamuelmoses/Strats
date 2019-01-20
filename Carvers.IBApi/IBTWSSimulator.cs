@@ -34,6 +34,9 @@ namespace Carvers.IBApi
         public bool IsConnected { get; private set; }
         public int NextOrderId { get; }
 
+        public readonly Subject<HistoricalDataMessage> historicalDataSubject;
+        public IObservable<HistoricalDataMessage> HistoricalDataStream => historicalDataSubject;
+
         public IBTWSSimulator(Func<Symbol, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime)
             : this(filePathGetter, startTime, DateTimeOffset.MaxValue)
         { }
@@ -46,6 +49,7 @@ namespace Carvers.IBApi
             this.endTime = endTime;
 
             
+            historicalDataSubject = new Subject<HistoricalDataMessage>();
             realTimeBarMsgSubject = new Subject<RealTimeBarMessage>();
             ibtwsErrorSubject = new Subject<IBTWSErrorMessage>();
             ibtwsMessageSubject = new Subject<IBTWSMessage>();
@@ -138,6 +142,12 @@ namespace Carvers.IBApi
         }
 
         public void AddRealtimeDataRequest(int tickerId, Contract contract, string whatToShow, bool useRTH)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddHistoricalDataRequest(int tickerId, Contract contract, string endDateTime, string durationString,
+            string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate)
         {
             throw new NotImplementedException();
         }

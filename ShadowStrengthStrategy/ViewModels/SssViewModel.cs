@@ -14,7 +14,6 @@ using Carvers.IB.App;
 using Carvers.IBApi;
 using Carvers.IBApi.Extensions;
 using Carvers.Infra;
-using Carvers.Infra.Extensions;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
@@ -41,21 +40,33 @@ namespace ShadowStrengthStrategy.ViewModels
         {
             Instruments = instruments;
 
-            //Ibtws = new IBTWS();
-            ////var barspan = TimeSpan.FromSeconds(5);
+            Ibtws = new IBTWS();
+            var barspan = TimeSpan.FromSeconds(5);
 
-            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
-                new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2017, 12, 15, 0, 0, 0, TimeSpan.Zero));
+            //Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
+            //    new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
+            //    new DateTimeOffset(2017, 12, 15, 0, 0, 0, TimeSpan.Zero));
 
-            var barspan = TimeSpan.FromMinutes(1);
+            //var barspan = TimeSpan.FromMinutes(1);
 
-            //Ibtws = new IBTWSSimulator((cxPair, dt) => Utility.FxIBDATAPathGetter(cxPair), new DateTimeOffset(2018, 04, 24, 0, 0, 0, TimeSpan.Zero));
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
             Strategy = new Strategy("SS Strategy");
 
             InstrumentCharts = new ObservableCollection<SymbolChartsViewModel>();
+
+            Strategy.OpenOrders
+                .Merge(Strategy.CloseddOrders)
+                .Subscribe(order =>
+                {
+                    string side = "SELL";
+                    if (order is BuyOrder || order is BuyToCoverOrder)
+                        side = "BUY";
+
+                    if(Ibtws is IBTWS)
+                        Ibtws.PlaceOrder(ContractCreator.GetContract(order.OrderInfo.Symbol), OrderCreator.GetOrder(Ibtws.NextOrderId, side, "100000", "MKT", "", "DAY"));
+                });
+
 
             foreach (var instrument in Instruments)
             {
@@ -66,29 +77,17 @@ namespace ShadowStrengthStrategy.ViewModels
                     .Select(msg => msg.ToCandle(barspan))
                     .Select(c => new Timestamped<Candle>(c.TimeStamp, c));
 
+                var file = new FileWriter(GlobalPaths.CandleFileFor(instrument, "5S", Ibtws is IBTWS).FullName, 12);
+                originalFeed.Subscribe(c => file.WriteWithTs(c.Val.ToCsv()));
+
                 var minuteFeed = originalFeed;
                 if (barspan < TimeSpan.FromMinutes(1))
                 {
                     minuteFeed = new AggreagateCandleFeed(originalFeed, TimeSpan.FromMinutes(1)).Stream;
-                    //var minuteCandleFile = new FileWriter(Paths.IBDataCandlesFor(instrument, "1M").FullName, 60 * 24);
-                    //minuteFeed.Subscribe(candle => minuteCandleFile.Write(candle.ToCsv()));
                 }
 
                 var hourlyFeed = new AggreagateCandleFeed(originalFeed, TimeSpan.FromHours(1)).Stream;
                 var dailyfeed = new AggreagateCandleFeed(hourlyFeed, TimeSpan.FromDays(1)).Stream;
-                //var shadowCandleFeed = new ShadowCandleFeed(shadowCandlesFile, dailyfeed, 3);
-
-                //var hourlyCandleFile = new FileWriter(Paths.IBDataCandlesFor(instrument, "1H").FullName, 1);
-                //hourlyFeed.Subscribe(candle => hourlyCandleFile.Write(candle.ToCsv()));
-
-                //var dailyCandleFile = new FileWriter(Paths.IBDataCandlesFor(instrument, "1D").FullName, 1);
-                //dailyfeed.Subscribe(candle => dailyCandleFile.Write(candle.ToCsv()));
-
-                //var shadowCandleFile = new FileWriter(shadowCandlesFile.FullName, 1);
-                //shadowCandleFeed.Stream
-                //    .Select(c => c.Val)
-                //    .DistinctUntilChanged()
-                //    .Subscribe(candle => shadowCandleFile.Write(candle.ToCsv()));
 
                 var shadowCandles = Enumerable.Empty<ShadowCandle>().ToList();
                 if (File.Exists(shadowCandlesFile.FullName))
@@ -110,7 +109,7 @@ namespace ShadowStrengthStrategy.ViewModels
                         }));
 
                 var context = new SssContext(Strategy,
-                    new FileWriter(GlobalPaths.StrategySummaryFile(Strategy, instrument).FullName),
+                    new FileWriter(GlobalPaths.StrategySummaryFile(Strategy, instrument, DateTime.Now.Date.ToString("yyyyMMdd")).FullName),
                     instrument,
                     GlobalPaths.ShadowCandlesFor(instrument, "1D", liveData: Ibtws is IBTWS),
                     new List<IIndicatorFeed> { shadowStrength },
@@ -248,6 +247,8 @@ namespace ShadowStrengthStrategy.ViewModels
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
         }
+
+      
 
         public IEnumerable<Symbol> Instruments { get; private set; }
         public ICommand StartCommand { get; }

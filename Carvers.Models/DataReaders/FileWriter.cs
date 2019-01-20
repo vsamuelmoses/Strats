@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Carvers.Models.DataReaders
@@ -26,9 +27,9 @@ namespace Carvers.Models.DataReaders
 
         }
 
-        public void Write(string line)
+        public void WriteWithTs(string line)
         {
-            cache.Add(line);
+            cache.Add($"{DateTime.Now.ToString()},{line}");
 
             if (cache.Count >= cacheSize)
             {

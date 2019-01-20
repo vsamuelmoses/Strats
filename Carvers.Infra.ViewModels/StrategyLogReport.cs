@@ -20,7 +20,11 @@ namespace Carvers.Infra.ViewModels
             var closedOrders = strategies.Select(strat => strat.CloseddOrders)
                 .Merge()
                 .Subscribe(info => Log.Add(info.ToCsv()), 
-                () => {
+                () =>
+                {
+
+                    if (!Directory.Exists(Paths.Reports))
+                        Directory.CreateDirectory(Paths.Reports);
 
                     File.WriteAllLines(Path.Combine(Paths.Reports, $"{DateTime.Now:yyyyMMddHHmmss}.{logName}.csv"), Log);
                     });

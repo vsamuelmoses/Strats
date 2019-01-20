@@ -23,7 +23,17 @@
       <Button Content="Disconnect" 
               Command="{Binding DisconnectCommand}"
               Style="{StaticResource TileButton}"/>
-    </StackPanel>
+
+        <Button Content="Download 1D Fx" 
+                Command="{Binding DownloadFxDailyCandlesCmd}"
+                Style="{StaticResource TileButton}"/>
+        
+        <Button Content="Create 1D Fx Shadow" 
+                Command="{Binding CreateDailyShadowCandlesCmd}"
+                Style="{StaticResource TileButton}"/>
+
+        
+        </StackPanel>
 
     <!--<ItemsControl x:Name="CurrencyPairItemsControl"
                   DockPanel.Dock="Top"
