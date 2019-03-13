@@ -14,6 +14,7 @@ using Carvers.IB.App;
 using Carvers.IBApi;
 using Carvers.IBApi.Extensions;
 using Carvers.Infra;
+using Carvers.Infra.Math;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
@@ -44,7 +45,7 @@ namespace ShadowStrengthStrategy.ViewModels
             var barspan = TimeSpan.FromSeconds(5);
 
             //Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
-            //    new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
+            //new DateTimeOffset(2017, 01, 01, 0, 0, 0, TimeSpan.Zero),
             //    new DateTimeOffset(2017, 12, 15, 0, 0, 0, TimeSpan.Zero));
 
             //var barspan = TimeSpan.FromMinutes(1);
@@ -78,7 +79,11 @@ namespace ShadowStrengthStrategy.ViewModels
                     .Select(c => new Timestamped<Candle>(c.TimeStamp, c));
 
                 var file = new FileWriter(GlobalPaths.CandleFileFor(instrument, "5S", Ibtws is IBTWS).FullName, 12);
-                originalFeed.Subscribe(c => file.WriteWithTs(c.Val.ToCsv()));
+                originalFeed.Subscribe(c =>
+                {
+                    Debug.WriteLine(c.Val.ToCsv());
+                    file.WriteWithTs(c.Val.ToCsv());
+                });
 
                 var minuteFeed = originalFeed;
                 if (barspan < TimeSpan.FromMinutes(1))

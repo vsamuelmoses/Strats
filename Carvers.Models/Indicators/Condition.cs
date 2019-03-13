@@ -64,7 +64,7 @@ namespace Carvers.Models.Indicators
     {
         public string StrategyName { get; }
 
-        public IOrder OpenOrder { get; private set; }
+        public IOrder OpenOrder => OpenedOrders.LastOrDefault();
 
         public Strategy(string strategyName)
         {
@@ -72,6 +72,7 @@ namespace Carvers.Models.Indicators
             openOrders = new Subject<IOrder>();
             closeddOrders = new Subject<IOrder>();
             closedOrders = new ConcurrentBag<IClosedOrder>();
+            openedOrders = new List<IOrder>();
         }
 
         public void Execute(DateTimeOffset dateTimeOffset)
@@ -91,17 +92,24 @@ namespace Carvers.Models.Indicators
         public void Open<T>(IOpenOrder<T> order)
             where T : IClosedOrder
         {
-            OpenOrder = order;
-            openOrders.OnNext(OpenOrder);
+            openedOrders.Add(order);
+            openOrders.OnNext(order);
+            Debug.WriteLine($"Added Order {order.OrderInfo.ToCsv()}");
         }
 
         public void Close(IClosedOrder order)
         {
-            OpenOrder = null;
             closedOrders.Add(order);
-            closeddOrders.OnNext(order);
 
+            IOrder openOrder = (order as SellOrder)?.BuyOrder;
+            if(openOrder == null)
+                openOrder = (order as BuyToCoverOrder)?.OpenOrder;
+
+            openedOrders.Remove(openOrder);
+            closeddOrders.OnNext(order);
             RecentClosedOrder = order;
+
+            Debug.WriteLine($"Closed Order {order.OrderInfo.ToCsv()}");
         }
 
         public Price PL(Predicate<IClosedOrder> condition)
@@ -109,6 +117,10 @@ namespace Carvers.Models.Indicators
             return ClosedOrders.Where(order => condition(order))
                 .ProfitLoss();
         }
+
+
+        private List<IOrder> openedOrders;
+        public IEnumerable<IOrder> OpenedOrders => openedOrders;
 
         public IClosedOrder RecentClosedOrder { get; private set; }
 

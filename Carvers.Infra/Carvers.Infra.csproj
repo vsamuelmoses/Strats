@@ -65,6 +65,7 @@
     <Compile Include="Extensions\DoubleExtensions.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Math\AvgCalculator.cs" />
     <Compile Include="Math\Geometry\Point.cs" />
     <Compile Include="Math\Geometry\LineExtenstions.cs" />
     <Compile Include="Math\Geometry\Line.cs" />

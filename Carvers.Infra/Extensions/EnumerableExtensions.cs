@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Markup;
 using Carvers.Infra.Math.Geometry;
 
 namespace Carvers.Infra.Extensions
@@ -17,6 +18,24 @@ namespace Carvers.Infra.Extensions
         {
             return source.Reverse().Take(n);
         }
+
+        public static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, int n = 1)
+        {
+            var it = source.GetEnumerator();
+            bool hasRemainingItems = false;
+            var cache = new Queue<T>(n + 1);
+
+            do
+            {
+                if (hasRemainingItems = it.MoveNext())
+                {
+                    cache.Enqueue(it.Current);
+                    if (cache.Count > n)
+                        yield return cache.Dequeue();
+                }
+            } while (hasRemainingItems);
+        }
+
 
         public static IEnumerable<T> TakeLast<T>(this IEnumerable<T> source, int n)
         {
@@ -44,6 +63,18 @@ namespace Carvers.Infra.Extensions
             return false;
         }
 
+        public static bool CreatedVPattern(this IEnumerable<double> values)
+        {
+            var firstSet = values.Take(values.Count() / 2);
+            var secondSet = values.Skip(values.Count() / 2);
+
+            return firstSet.IsInDescending() && secondSet.IsInAscending();
+
+        }
+
+        public static bool CreatedVPattern<T>(this IEnumerable<T> values, Func<T, double> toDouble)
+            => values.Select(toDouble).CreatedVPattern();
+        
         public static IEnumerable<IGrouping<int, T>> GroupBy<T>(this IEnumerable<T> source, int itemsPerGroup)
         {
             var enumerable = source.ToList();

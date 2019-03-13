@@ -145,20 +145,30 @@ namespace Carvers.Utilities
             switch (symbol)
             {
                 case CurrencyPair pair:
-                {
-                    return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
-                        $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
-                }
+                    {
+                        if(dateTime.Year == 2019)
+                            return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
+                                $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}02.csv");
+
+                        return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
+                            $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");
+                    }
 
                 case Index index:
-                {
-                    return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
-                        $"{index}_M1_{dateTime.Year.ToString()}.csv");
-                }
+                    {
+                        return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
+                            $"{index}_M1_{dateTime.Year.ToString()}.csv");
+                    }
 
                 default:
                     throw new Exception("Unknown Symbol");
             }
+        }
+
+        public static string SymbolFilePathIbDataGetter(Symbol symbol, DateTimeOffset dateTime)
+        {
+            return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(), symbol.ToString(),
+                            $"DAT_IBData_{symbol.ToString()}_5S.csv");
         }
     }
 

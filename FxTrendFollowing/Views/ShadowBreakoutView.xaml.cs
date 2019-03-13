@@ -15,8 +15,8 @@ namespace FxTrendFollowing.Views
             InitializeComponent();
             var exceptJpy = CurrencyPair.All().Where(pair => pair.BaseCurrency != Currency.JPY && pair.TargetCurrency != Currency.JPY);
             // DataContext = new ShadowBreakoutDiversified(new [] {CurrencyPair.EURUSD, CurrencyPair.EURAUD, CurrencyPair.EURCAD, CurrencyPair.EURGBP });
+            //DataContext = new ShadowBreakoutDiversified(new[] { CurrencyPair.EURUSD });
             DataContext = new ShadowBreakoutDiversified(exceptJpy);
-            //DataContext = new ShadowBreakoutDiversified(new[] { CurrencyPair.USDCAD });
         }
     }
 }

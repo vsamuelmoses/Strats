@@ -5,6 +5,13 @@ namespace Carvers.Infra.Extensions
 {
     public static class DoubleExtensions
     {
+        public static bool IsInBetween(this int val, int min, int max)
+            => val > min && val < max;
+
+
+        public static bool IsInBetween(this double val, double min, double max)
+            => val > min && val < max;
+
         public static double PercentageOf(this double value, double denominator)
             => ((value*100)/denominator);
 

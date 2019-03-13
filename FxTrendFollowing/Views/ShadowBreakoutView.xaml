@@ -40,9 +40,11 @@
                       ItemsSource="{Binding InstrumentCharts}" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Instrument" Binding="{Binding Instrument}" />
-                            <DataGridTextColumn Header="Instrument" Binding="{Binding SummaryReport.ProfitLoss}" />
+                            <DataGridTextColumn Header="PnL" Binding="{Binding SummaryReport.TotalTradesReport.ProfitLoss}" />
                             <DataGridTextColumn Header="Total trades" Binding="{Binding SummaryReport.TotalTrades}" />
-                            <DataGridTextColumn Header="Win%" Binding="{Binding SummaryReport.WinningPercentage}" />
+                            <DataGridTextColumn Header="Win%" Binding="{Binding SummaryReport.TotalTradesReport.WinningPercentage}" />
+                            <DataGridTextColumn Header="BuyWin%" Binding="{Binding SummaryReport.BuyTradesReport.WinningPercentage}" />
+                            <DataGridTextColumn Header="SellWin%" Binding="{Binding SummaryReport.SellTradesReport.WinningPercentage}" />
                             <DataGridTextColumn Header="Sharpe" Binding="{Binding SummaryReport.SharpeRatio}" />
                             <DataGridTextColumn Header="MaxDD %" Binding="{Binding SummaryReport.MaxDDPercentage}" />
                         </DataGrid.Columns>

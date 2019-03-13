@@ -4,7 +4,7 @@ using System.IO;
 
 namespace Carvers.Models.DataReaders
 {
-    public class FileWriter
+    public class FileWriter : IFileWriter
     {
         private readonly List<string> cache;
         private readonly string filePath;
@@ -37,5 +37,15 @@ namespace Carvers.Models.DataReaders
                 cache.Clear();
             }
         }
+    }
+
+    public interface IFileWriter
+    {
+        void WriteWithTs(string line);
+    }
+
+    public class DummyFileWriter : IFileWriter
+    {
+        public void WriteWithTs(string line) { }
     }
 }
