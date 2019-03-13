@@ -142,8 +142,22 @@ namespace ShadowStrengthStrategy.ViewModels
                     {
                         var candle = tup.Item1;
                         var shadowCandle = ShadowCandle.Null;
-                        if(candle != null)
-                            shadowCandle = shadowCandles.LastOrDefault(sh => sh.TimeStamp.Date < candle.TimeStamp.Date);
+
+                        var shadows = Enumerable.Empty<ShadowCandle>().ToList();
+                        if (File.Exists(shadowCandlesFile.FullName))
+                            shadows = CsvReader
+                                .ReadFile(shadowCandlesFile, CsvToModelCreators.CsvToCarversShadowCandle, skip: 0)
+                                .ToList();
+                        
+                        if (candle != null)
+                        {
+                            var sha = shadows.LastOrDefault(sh => sh.TimeStamp.Date < candle.TimeStamp.Date);
+                            if (sha != null)
+                                shadowCandle = sha;
+                        }
+
+                        //Debug.WriteLine($"ShadowCandle, {shadowCandle.ToCsv()}");
+
                         var shadowSrtength = tup.Item2;
 
                         var sStrength = shadowCandle.Low + shadowCandle.CandleLength() / 2 +
@@ -245,10 +259,11 @@ namespace ShadowStrengthStrategy.ViewModels
             var logReport = new StrategyLogReport(new[] { Strategy }, logName: "MoBo");
             var chartReport = new StrategyChartReport(new[] { Strategy }, Dispatcher.CurrentDispatcher);
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
+            emailReport = new StrategyEmailReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
         }
 
-      
+        private StrategyEmailReport emailReport;
 
         public IEnumerable<Symbol> Instruments { get; private set; }
         public ICommand StartCommand { get; }

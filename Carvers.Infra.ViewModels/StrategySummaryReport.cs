@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Carvers.Models;
@@ -79,7 +81,7 @@ namespace Carvers.Infra.ViewModels
             {
                 profitLoss = value;
                 OnPropertyChanged();
-                
+
             }
         }
 
@@ -89,7 +91,7 @@ namespace Carvers.Infra.ViewModels
             get => _maxDdPercentage;
             set
             {
-                _maxDdPercentage = value; 
+                _maxDdPercentage = value;
                 OnPropertyChanged();
             }
         }
@@ -205,5 +207,55 @@ namespace Carvers.Infra.ViewModels
 
         public IObservable<DateTimeEvent<Price>> ProfitLossStream => _profitLossStream;
 
+    }
+
+    public class StrategyEmailReport : ViewModel
+    {
+        private readonly Subject<DateTimeEvent<Price>> _profitLossStream;
+
+        public StrategyEmailReport(IEnumerable<IStrategy> strategies)
+        {
+
+            foreach(var strategy in strategies)
+                {
+                    strategy
+                    .OpenOrders
+                    .Merge(strategy.CloseddOrders)
+                    .Subscribe(order => Report(order, "vsamuelmoses@gmail.com"));
+                }
+
+        }
+
+        public static bool Report(IOrder order, string receiverEmail)
+        {
+            using (var client = new SmtpClient())
+            {
+                var msg = new MailMessage { From = new MailAddress("technologycarvers@gmail.com") };
+                msg.To.Add(receiverEmail);
+                msg.Subject = $"{order.OrderInfo.TimeStamp}, {order.GetType().Name}, {order.OrderInfo.Symbol}";
+                msg.Body = $"{order.OrderInfo.TimeStamp}, {order.GetType().Name}, {order.OrderInfo.Symbol}";
+
+                client.UseDefaultCredentials = true;
+                client.Host = "smtp.gmail.com";
+                client.Port = 587;
+                client.EnableSsl = true;
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.Credentials = new NetworkCredential("technologycarvers@gmail.com", "moonnight");
+                client.Timeout = 20000;
+                try
+                {
+                    client.Send(msg);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+                finally
+                {
+                    msg.Dispose();
+                }
+            }
+        }
     }
 }
