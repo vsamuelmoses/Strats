@@ -79,8 +79,8 @@ namespace Carvers.IB.App
             DownloadFxDailyCandlesCmd = new RelayCommand(
                 _ =>
                 {
-                    //Download1DayCandles(new ConcurrentQueue<Symbol>(CurrencyPair.All()));
-                    Download1DayCandles(new ConcurrentQueue<Symbol>(new List<Symbol>() {CurrencyPair.AUDNZD}));
+                    Download1DayCandles(new ConcurrentQueue<Symbol>(CurrencyPair.All()));
+                    //Download1DayCandles(new ConcurrentQueue<Symbol>(new List<Symbol>() {CurrencyPair.AUDNZD}));
                 }, 
                 _ => ibtws.IsConnected);
 
@@ -204,7 +204,7 @@ namespace Carvers.IB.App
             if (!instruments.TryDequeue(out instrument))
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action(() => Messages.Add("Completed Updating 1D candles for all instruments")));
-                return;
+                return; 
             }
 
             var candleFile1D = GlobalPaths.CandleFileFor(instrument, "1D", liveData: true);

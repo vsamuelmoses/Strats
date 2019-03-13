@@ -9,6 +9,7 @@ namespace Carvers.Models
         DateTimeOffset TimeStamp { get; }
         IStrategy Strategy { get; }
         int Size { get; }
+        Candle Candle { get; }
         string ToCsv();
     }
 

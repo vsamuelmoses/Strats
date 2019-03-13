@@ -1,11 +1,74 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using Carvers.Models.Extensions;
+using Carvers.Infra.Extensions;
 
 namespace Carvers.Models.DataReaders
 {
+    public static class CandleFeed
+    {
+
+        //public static IObservable<RealTimeBarMessage> ToHourlyStream(this IObservable<RealTimeBarMessage> candleStream)
+        //    => Aggregate(candleStream,
+        //        (c1, c2) => c1.TimeStamp.Hour != c2.TimeStamp.Hour,
+        //        TimeSpan.FromHours(1),
+        //        dateTime => dateTime.Date.Add(TimeSpan.FromHours(dateTime.Hour)));
+
+        //public static IObservable<RealTimeBarMessage> ToDailyStream(this IObservable<RealTimeBarMessage> candleStream)
+        //    => Aggregate(candleStream,
+        //        (c1, c2) => c1.TimeStamp.Date != c2.TimeStamp.Date,
+        //        TimeSpan.FromDays(1),
+        //        dateTime => dateTime.Date);
+
+
+        public static IObservable<Candle> ToHourlyStream(this IObservable<Candle> candleStream)
+            => Aggregate(candleStream, 
+                (c1, c2) => c1.TimeStamp.Hour != c2.TimeStamp.Hour, 
+                TimeSpan.FromHours(1), 
+                dateTime => dateTime.Date.Add(TimeSpan.FromHours(dateTime.Hour)));
+
+        public static IObservable<Candle> ToDailyStream(this IObservable<Candle> candleStream)
+            => Aggregate(candleStream,
+                //(c1, c2) => c1.TimeStamp.Date != c2.TimeStamp.Date,
+                (c1, c2) => c1.TimeStamp.Hour == 16 && c2.TimeStamp.Hour == 17,
+                TimeSpan.FromDays(1),
+                dateTime => dateTime.Date);
+
+        private static IObservable<Candle> Aggregate(IObservable<Candle> candleStream, 
+            Func<Candle, Candle, bool> boundry, 
+            TimeSpan span, 
+            Func<DateTime, DateTime> startTimeAdjustment = null)
+        {
+            if (startTimeAdjustment == null)
+                startTimeAdjustment = dt => dt;
+
+            var boundrySelector = candleStream
+                    .Zip(candleStream.Skip(1), Tuple.Create)
+                    .Where(tup =>
+                    {
+                        //Debug.WriteLine($"filtering sequence- {tup.Item1.TimeStamp}, {tup.Item2.TimeStamp}");
+                        return boundry(tup.Item1, tup.Item2);
+                    })
+                    .Publish().
+                RefCount();
+
+            return candleStream
+                .Buffer(boundrySelector, s => boundrySelector)
+                .Where(candles => candles.Any())
+                .Select(candles => {
+                    return candles.ToSingleCandle(span).AdjustTime(startTimeAdjustment);
+                })
+                .Publish()
+                .RefCount();
+        }
+    }
+
+
     public class AggreagateCandleFeed
     {
         private Subject<Timestamped<Candle>> stream;

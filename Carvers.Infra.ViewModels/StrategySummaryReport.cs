@@ -108,6 +108,25 @@ namespace Carvers.Infra.ViewModels
 
     }
 
+    public class TradesReport
+    {
+        public TradesReport(IEnumerable<IClosedOrder> orders)
+        {
+            ProfitableTrades = orders.Count(o => o.ProfitLoss > Price.ZeroUSD);
+            LoosingTrades = orders.Count(o => o.ProfitLoss < Price.ZeroUSD);
+
+            if (orders.Any())
+                WinningPercentage = (ProfitableTrades * 100) / orders.Count();
+
+            ProfitLoss = orders.ProfitLoss();
+        }
+
+        public Price ProfitLoss { get; }
+        public int WinningPercentage { get; }
+        public int LoosingTrades { get; }
+        public int ProfitableTrades { get; }
+    }
+
     public class StrategyInstrumentSummaryReport : ViewModel
     {
         private readonly Symbol _symbol;
@@ -126,16 +145,21 @@ namespace Carvers.Infra.ViewModels
         {
             var orders = strategy.ClosedOrders.Where(o => o.OrderInfo.Symbol == symbol).ToList();
             TotalTrades = orders.Count();
-            ProfitableTrades = orders.Count(o => o.ProfitLoss > Price.ZeroUSD);
-            LoosingTrades = orders.Count(o => o.ProfitLoss < Price.ZeroUSD);
 
-            if (orders.Any())
-                WinningPercentage = (profitableTrades * 100) / orders.Count();
+            TotalTradesReport = new TradesReport(orders);
+            SellTradesReport = new TradesReport(orders.OfType<BuyToCoverOrder>());
+            BuyTradesReport = new TradesReport(orders.OfType<SellOrder>());
 
-            ProfitLoss = orders.ProfitLoss();
+            //ProfitableTrades = orders.Count(o => o.ProfitLoss > Price.ZeroUSD);
+            //LoosingTrades = orders.Count(o => o.ProfitLoss < Price.ZeroUSD);
+
+            //if (orders.Any())
+            //    WinningPercentage = (profitableTrades * 100) / orders.Count();
+
+            
             SharpeRatio = SharpeRatioCalculator.Calculate(orders);
-            MaxDDPercentage = ddCalculator.Calculate(ProfitLoss.Value);
-            _profitLossStream.OnNext(new DateTimeEvent<Price>(recentClosedOrder.OrderInfo.TimeStamp, ProfitLoss));
+            MaxDDPercentage = ddCalculator.Calculate(TotalTradesReport.ProfitLoss.Value);
+            _profitLossStream.OnNext(new DateTimeEvent<Price>(recentClosedOrder.OrderInfo.TimeStamp, TotalTradesReport.ProfitLoss));
         }
 
         private int totalTrades;
@@ -145,43 +169,28 @@ namespace Carvers.Infra.ViewModels
             set { totalTrades = value; OnPropertyChanged(); }
         }
 
-        private int profitableTrades;
-        public int ProfitableTrades
+        private TradesReport totalTradesReport;
+        public TradesReport TotalTradesReport
         {
-            get { return profitableTrades; }
-            set { profitableTrades = value; OnPropertyChanged(); }
+            get { return totalTradesReport; }
+            set { totalTradesReport = value; OnPropertyChanged(); }
         }
 
-        private int loosingTrades;
-        public int LoosingTrades
+        private TradesReport sellTradesReport;
+        public TradesReport SellTradesReport
         {
-            get { return loosingTrades; }
-            set { loosingTrades = value; OnPropertyChanged(); }
+            get { return sellTradesReport; }
+            set { sellTradesReport = value; OnPropertyChanged(); }
         }
 
-
-        private double winningPercentage;
-
-        public double WinningPercentage
+        private TradesReport buyTradesReport;
+        public TradesReport BuyTradesReport
         {
-            get { return winningPercentage; }
-            set { winningPercentage = value; OnPropertyChanged(); }
+            get { return buyTradesReport; }
+            set { buyTradesReport = value; OnPropertyChanged(); }
         }
 
-
-        private Price profitLoss;
-
-        public Price ProfitLoss
-        {
-            get { return profitLoss; }
-            set
-            {
-                profitLoss = value;
-                OnPropertyChanged();
-
-            }
-        }
-
+       
 
         public double MaxDDPercentage
         {
@@ -196,6 +205,7 @@ namespace Carvers.Infra.ViewModels
         private double sharpeRatio;
         private double _maxDdPercentage;
         private SimpleDrawDownCalculator ddCalculator;
+        
 
         public double SharpeRatio
         {

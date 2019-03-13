@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -13,6 +12,7 @@ using Carvers.Charting.ViewModels;
 using Carvers.IB.App;
 using Carvers.IBApi;
 using Carvers.IBApi.Extensions;
+using Carvers.Infra.Math;
 using Carvers.Infra.ViewModels;
 using Carvers.Models;
 using Carvers.Models.DataReaders;
@@ -170,41 +170,6 @@ namespace FxTrendFollowing.Strategies
         }
     }
 
-    public class AvgCalculator
-    {
-        private readonly int _maxCount;
-        private readonly List<double> values;
-
-        public AvgCalculator(int maxCount = 0)
-        {
-            values = new List<double>();
-            _maxCount = maxCount;
-        }
-        public AvgCalculator Add(double value)
-        {
-            values.Add(value);
-            if (_maxCount == 0)
-            {
-                Average = values.Average();
-            }
-            else if (values.Count > _maxCount)
-            {
-                values.RemoveAt(0);
-                Average = values.Average();
-            }
-
-            return this;
-        }
-
-        public void DebugDump()
-        {
-            Debug.WriteLine("DUMP====================");
-            values.ForEach(v => Debug.WriteLine($"Avg Calc - DebugDump{v}"));
-        }
-
-        public double? Average { get; private set; }
-    }
-
 
     public class TargetProfitInfo : IContextInfo
     {
@@ -217,6 +182,20 @@ namespace FxTrendFollowing.Strategies
             Symbol = symbol;
             BuyTpCalculator = buyTpCalculator;
             SellTpCalculator = sellTpCalculator;
+        }
+
+        private static TargetProfitInfo _instance;
+        public static TargetProfitInfo GetSingleton()
+        {
+            if(_instance == null)
+                _instance = new TargetProfitInfo(new Symbol("ALL Symbols"), new AvgCalculator(30), new AvgCalculator(30));
+
+            return _instance;
+        }
+
+        public static TargetProfitInfo GetDefault()
+        {
+            return new TargetProfitInfo(new Symbol("ALL Symbols"), new AvgCalculator(30), new AvgCalculator(30));
         }
     }
 

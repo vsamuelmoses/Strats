@@ -75,6 +75,10 @@ namespace Carvers.Models.Extensions
             return new Candle(ohlc, candles.First().TimeStamp, span);
         }
 
+        public static Candle AdjustTime(this Candle candle, Func<DateTime, DateTime> timeAdjustment)
+            => new Candle(candle.Ohlc, timeAdjustment(candle.TimeStamp.DateTime), candle.Span);
+        
+
         public static bool PassedThroughPrice(this Candle candle, double value)
         {
             return candle.High > value && candle.Low < value;

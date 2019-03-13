@@ -24,11 +24,23 @@ namespace IBSampleApp.messages
             set { timestamp = value; }
         }
 
+
+        public DateTimeOffset TimeStamp { get; private set; }
+
+        public RealTimeBarMessage(int reqId, DateTimeOffset timestamp, long date, double open, double high, double low, double close, long volume, double WAP, int count)
+            : this(reqId, date, open, high, low, close, volume, WAP, count)
+        {
+            TimeStamp = timestamp;
+        }
+
+
+
         public RealTimeBarMessage(int reqId, long date, double open, double high, double low, double close, long volume, double WAP, int count)
             : base(reqId, new IBApi.Bar(UnixTimestampToDateTime(date).ToString("yyyyMMdd hh:mm:ss"), open, high, low, close, volume, count, WAP))
         {
             Timestamp = date;
             LongVolume = volume;
+            TimeStamp = UnixTimestampToDateTime(date);
         }
 
         static DateTime UnixTimestampToDateTime(long unixTimestamp)

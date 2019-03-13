@@ -65,7 +65,9 @@ namespace Carvers.Charting.MultiPane
             _verticalChartGroupId = Guid.NewGuid().ToString();
 
             _viewportManager = new DefaultViewportManager();
-            var uiSyncCxt = TaskScheduler.FromCurrentSynchronizationContext();
+            //var uiSyncCxt = TaskScheduler.FromCurrentSynchronizationContext();
+
+            var uiSyncCxt = DispatcherExtensions.UiTaskScheduler();
 
             var closePaneCommand = new ActionCommand<IChildPane>(pane => ChartPaneViewModels.Remove((BaseChartPaneViewModel)pane));
 

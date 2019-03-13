@@ -6,6 +6,7 @@ using IBApi;
 using IBSampleApp.messages;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
@@ -106,11 +107,12 @@ namespace Carvers.IBApi
 
                     var toSend = firstEntry.Item1.ReadNextLine();
 
-                    if (toSend.Timestamp.UnixEpochToLocalTime() > endTime)
+                    if (toSend.TimeStamp > endTime)
                         return;
 
+                    //Debug.WriteLine($"{System.Threading.Thread.CurrentThread.ManagedThreadId} - Publish on - {toSend.TimeStamp}");
 
-                    if(toSend.Timestamp.UnixEpochToLocalTime() >= startTime)    
+                    if (toSend.TimeStamp >= startTime)    
                         realTimeBarMsgSubject.OnNext(toSend);
                 }
 
