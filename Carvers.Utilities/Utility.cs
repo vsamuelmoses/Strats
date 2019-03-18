@@ -174,11 +174,20 @@ namespace Carvers.Utilities
 
     public static class DateTimeUtility
     {
-        public static DateTime YesterdayDate
-            => DateBefore(1.Days());
+        public static DateTime ToEst(this DateTime utc)
+        {
+            if (utc.Kind != DateTimeKind.Utc)
+                throw new Exception("Expecting UTC");
 
-        public static DateTime DateBefore(TimeSpan daysSpan)
-            => DateTime.Now.Date.Subtract(daysSpan);
+            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            return TimeZoneInfo.ConvertTimeFromUtc(utc, easternZone);
+        }
+
+        public static DateTime YesterdayUtcDate
+            => UtcDateBefore(1.Days());
+
+        public static DateTime UtcDateBefore(TimeSpan daysSpan)
+            => DateTime.UtcNow.Date.Subtract(daysSpan);
 
         public static TimeSpan Days(this int val)
             => TimeSpan.FromDays(val);

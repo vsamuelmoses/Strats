@@ -45,14 +45,14 @@ namespace Carvers.IB.App
             //        });
 
             ibtws.IbtwsErrorStream
-                .Subscribe(msg => Messages.Add($"{msg.Arg1}, {msg.Arg2},{msg.Arg3},{msg.Ex}"));
+                .Subscribe(msg => AddMessage($"{msg.Arg1}, {msg.Arg2},{msg.Arg3},{msg.Ex}"));
 
             ibtws.IbtwsMessageStream
                 .ObserveOnDispatcher()
-                .Subscribe(msg => Messages.Add(msg.Message));
+                .Subscribe(msg => AddMessage(msg.Message));
 
             ibtws.IbtwsConnectionStateStream
-                .Subscribe(msg => Messages.Add($"Connection State (Is Connected): {msg.IsConnected}"));
+                .Subscribe(msg => AddMessage($"Connection State (Is Connected): {msg.IsConnected}"));
 
             CurrencyPairs = CurrencyPair.All();
 
@@ -92,6 +92,9 @@ namespace Carvers.IB.App
                 _ => ibtws.IsConnected);
         }
 
+        private void AddMessage(string message)
+            => Messages.Add($"{DateTime.Now} {message}");
+
         private void PlaceOrder()
         {
             var contract = ContractCreator.GetContract(CurrencyPair.EURJPY);
@@ -120,30 +123,30 @@ namespace Carvers.IB.App
         //private void IbClient_HistoricalDataEnd(HistoricalDataEndMessage obj)
         //{
         //    if (obj != null)
-        //        Messages.Add(obj.RequestId.ToString());
+        //        AddMessage(obj.RequestId.ToString());
         //}
 
         //private void IbClient_HistoricalDataUpdate(HistoricalDataMessage obj)
         //{
         //    if (obj != null)
-        //        Messages.Add(obj.RequestId.ToString());
+        //        AddMessage(obj.RequestId.ToString());
         //}
 
         //private void IbClient_HistoricalData(HistoricalDataMessage obj)
         //{
         //    if(obj != null)
-        //        Messages.Add(obj.RequestId.ToString());
+        //        AddMessage(obj.RequestId.ToString());
         //}
 
 
         //private void OnError(int arg1, int arg2, string arg3, Exception arg4)
         //{
-        //    Messages.Add($"{arg1}, {arg2}, {arg3}, {arg4}");
+        //    AddMessage($"{arg1}, {arg2}, {arg3}, {arg4}");
         //}
 
         //private void OnConnectionClosed()
         //{
-        //    Messages.Add("Connection Closed");
+        //    AddMessage("Connection Closed");
         //}
 
 
@@ -152,7 +155,7 @@ namespace Carvers.IB.App
             Symbol instrument;
             if (!instruments.TryDequeue(out instrument))
             {
-                Messages.Add("Completed computing 1D Shadow candles for all instruments");
+                AddMessage("Completed computing 1D Shadow candles for all instruments");
                 return;
             }
 
@@ -203,7 +206,7 @@ namespace Carvers.IB.App
             Symbol instrument;
             if (!instruments.TryDequeue(out instrument))
             {
-                Application.Current.Dispatcher.BeginInvoke(new Action(() => Messages.Add("Completed Updating 1D candles for all instruments")));
+                Application.Current.Dispatcher.BeginInvoke(new Action(() => AddMessage("Completed Updating 1D candles for all instruments")));
                 return; 
             }
 
@@ -224,15 +227,36 @@ namespace Carvers.IB.App
                 .ToList()
                 .LastOrDefault();
 
-            var lastCandleDate = lastCandle?.TimeStamp.Date ?? DateTimeUtility.DateBefore(30.Days());
+            var lastCandleDate = lastCandle?.TimeStamp.Date ?? DateTimeUtility.UtcDateBefore(30.Days());
 
-            if (lastCandle != null && lastCandleDate == DateTimeUtility.YesterdayDate)
+            var estTime = DateTime.UtcNow.ToEst();
+            var incompleteDate = estTime.Date;
+
+            if (estTime.Hour >= 17)
+                incompleteDate = incompleteDate.AddDays(1);
+
+            var completeDate = incompleteDate.Subtract(1.Days());
+
+            if (lastCandleDate == completeDate)
             {
                 Download1DayCandles(instruments);
                 return;
             }
 
-            var missingNumberOfDays = (DateTime.Now.Date - lastCandleDate).Days;
+            //if (lastCandle != null && lastCandleDate == DateTimeUtility.YesterdayUtcDate.ToEst().Date)
+            //{
+            //    Download1DayCandles(instruments);
+            //    return;
+            //}
+
+            var missingNumberOfDays = (incompleteDate - lastCandleDate).Days;
+
+
+            //if (missingNumberOfDays == 0)
+            //{
+            //    Download1DayCandles(instruments);
+            //    return;
+            //}
 
             var contract = ContractCreator.GetContract(instrument);
             var endTime = DateTime.Now.ToString("yyyyMMdd HH:mm:ss") + " GMT";
@@ -247,9 +271,17 @@ namespace Carvers.IB.App
                 {
                     if (histData.IsForCurrencyPair(instrument))
                     {
+
+
+                        //var estTime = DateTime.UtcNow.ToEst();
+                        //var incompleteDate = estTime.Date;
+
+                        //if (estTime.Hour >= 17)
+                        //    incompleteDate = incompleteDate.AddDays(1);
+
                         var historicalCandle = histData.ToDailyCandle();
                         if (historicalCandle.TimeStamp.Date > lastCandleDate &&
-                            historicalCandle.TimeStamp.Date != DateTime.Now.Date) // we only want to update the 1D candles after the day is completed
+                            historicalCandle.TimeStamp.Date < incompleteDate) // we only want to update the 1D candles after the day is completed
                         {
                             File.AppendAllLines(candleFile1D.FullName, new List<string>() { historicalCandle.ToCsv() });
                         }
@@ -257,7 +289,7 @@ namespace Carvers.IB.App
                 }, e => { },
                     () =>
                     {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() => Messages.Add($"Completed {instrument}")));
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() => AddMessage($"Completed {instrument}")));
                         Download1DayCandles(instruments);
                     }, CancellationToken.None);
 

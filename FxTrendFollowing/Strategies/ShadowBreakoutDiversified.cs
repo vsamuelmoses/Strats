@@ -81,20 +81,32 @@ namespace FxTrendFollowing.Strategies
             //var barspan = TimeSpan.FromSeconds(5);
 
 
-            Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
-                new DateTimeOffset(2018, 1, 01, 0, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2018, 12, 27, 0, 0, 0, TimeSpan.Zero));
+            //Ibtws = new IBTWSSimulator(Utility.SymbolFilePathGetter,
+            //    new DateTimeOffset(2018, 1, 01, 0, 0, 0, TimeSpan.Zero),
+            //    new DateTimeOffset(2018, 12, 27, 0, 0, 0, TimeSpan.Zero));
 
-            var barspan = TimeSpan.FromMinutes(1);
+            //var barspan = TimeSpan.FromMinutes(1);
 
-            //Ibtws = new IBTWS();
-            //var barspan = TimeSpan.FromSeconds(5);
+            Ibtws = new IBTWS();
+            var barspan = TimeSpan.FromSeconds(5);
 
             IbtwsViewModel = new IBTWSViewModel(Ibtws);
 
             Strategy = new Strategy("CandleStick Pattern");
 
             InstrumentCharts = new ObservableCollection<SymbolChartsViewModel>();
+
+            Strategy.OpenOrders
+               .Merge(Strategy.CloseddOrders)
+               .Subscribe(order =>
+               {
+                   string side = "SELL";
+                   if (order is BuyOrder || order is BuyToCoverOrder)
+                       side = "BUY";
+
+                   if (Ibtws is IBTWS)
+                       Ibtws.PlaceOrder(ContractCreator.GetContract(order.OrderInfo.Symbol), OrderCreator.GetOrder(Ibtws.NextOrderId, side, "100000", "MKT", "", "DAY"));
+               });
 
 
             foreach (var instrument in Instruments)
@@ -117,6 +129,7 @@ namespace FxTrendFollowing.Strategies
             var logReport = new StrategyLogReport(new[] { Strategy }, logName: "MoBo");
             var chartReport = new StrategyChartReport(new[] { Strategy }, Dispatcher.CurrentDispatcher);
             var summaryReport = new StrategySummaryReport(new[] { Strategy });
+            emailReport = new StrategyEmailReport(new[] { Strategy });
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
         }
 
@@ -259,6 +272,7 @@ namespace FxTrendFollowing.Strategies
 
         private Tuple<bool,bool> ComputeStrategy(IEnumerable<(Symbol instrument, Candle candle, ShadowCandle shadow, double val, double strength)> tups)
         {
+            
             Debug.Assert(tups.Select(t => t.shadow).Distinct().Count() == 1);
 
             var noTrade = Tuple.Create(false, false);
@@ -363,6 +377,8 @@ namespace FxTrendFollowing.Strategies
                 OnPropertyChanged();
             }
         }
+
+        private StrategyEmailReport emailReport;
 
         public Carvers.Infra.ViewModels.Reporters Reporters { get; }
 

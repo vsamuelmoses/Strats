@@ -75,7 +75,7 @@ namespace FxTrendFollowing.ViewModels
             Ibtws.RealTimeBarStream.Subscribe(msg =>
             {
                 CurrencyPairDataVMs.Foreach(pairVm => pairVm.Add(msg, options.CandleFeedInterval));
-                TryCloseOpenOrder(msg.Timestamp.UnixEpochToLocalTime());
+                TryCloseOpenOrder(msg.Timestamp.UnixEpochToUtc());
 
             });
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using Carvers.Models;
+using Carvers.Utilities;
 using IBSampleApp.messages;
 
 namespace Carvers.IBApi.Extensions
@@ -9,25 +10,20 @@ namespace Carvers.IBApi.Extensions
     {
         public static Candle ToCandle(this RealTimeBarMessage msg, TimeSpan span)
         {
-            var utc = msg.Timestamp.UnixEpochToLocalTime();
-
-            TimeZoneInfo easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-            DateTime dt = TimeZoneInfo.ConvertTimeFromUtc(utc, easternZone);
-
-            return new Candle(new Ohlc(msg.Open, msg.High, msg.Low, msg.Close, msg.Volume), dt, span);
+            var est = msg.Timestamp.UnixEpochToUtc().ToEst();
+            return new Candle(new Ohlc(msg.Open, msg.High, msg.Low, msg.Close, msg.Volume), est, span);
         }
 
         public static Candle ToDailyCandle(this HistoricalDataMessage msg)
         {
-
             DateTime dt;
-            if(DateTime.TryParseExact(msg.Date, "yyyyMMdd", null, DateTimeStyles.None , out dt))
+            if (DateTime.TryParseExact(msg.Date, "yyyyMMdd", null, DateTimeStyles.None, out dt))
                 return new DailyCandle(new Ohlc(msg.Open, msg.High, msg.Low, msg.Close, msg.Volume), dt);
 
             throw new Exception("Unexpected error parsing datetime");
         }
 
-        public static DateTime UnixEpochToLocalTime(this long epoch)
+        public static DateTime UnixEpochToUtc(this long epoch)
         {
             var start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             

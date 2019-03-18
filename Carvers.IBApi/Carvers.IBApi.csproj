@@ -138,6 +138,10 @@
       <Project>{c3c7af04-7d5f-4e34-8ed5-7d3bb7fd774e}</Project>
       <Name>Carvers.Models</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Carvers.Utilities\Carvers.Utilities.csproj">
+      <Project>{5E1B72E1-FB51-4A38-A240-A6296D56D6F3}</Project>
+      <Name>Carvers.Utilities</Name>
+    </ProjectReference>
     <ProjectReference Include="..\IBApi\CSharpClient\client\CSharpAPI.csproj">
       <Project>{8ede0744-96c2-40b0-a8dc-37df79370203}</Project>
       <Name>CSharpAPI</Name>
