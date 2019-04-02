@@ -207,5 +207,14 @@ namespace Carvers.Models
 
             return (differenceInPips * positionSize) / fxRateGetter(CurrencyPair.Get(Currency.GBP, pair.BaseCurrency));
         }
+
+
+        public static double NeededMovementInPips(this CurrencyPair pair, int positionSize, double profitLoss, Func<CurrencyPair, double> fxRateGetter)
+        {
+            if (pair.BaseCurrency == Currency.GBP)
+                return profitLoss / positionSize;
+
+            return (profitLoss * fxRateGetter(CurrencyPair.Get(Currency.GBP, pair.BaseCurrency)))/ positionSize;
+        }
     }
 }

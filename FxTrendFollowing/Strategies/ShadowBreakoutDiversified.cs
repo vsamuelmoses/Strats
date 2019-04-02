@@ -109,10 +109,18 @@ namespace FxTrendFollowing.Strategies
                });
 
 
+
+            var feed = Ibtws.RealTimeBarStream
+                .Select(msg => Tuple.Create(msg.ToCurrencyPair(), msg.ToCandle(barspan)))
+                .Publish()
+                .RefCount();
+
+            var exchangeRateGetter = new ExchangeRateGetter(feed);
+
             foreach (var instrument in Instruments)
             {
                 var scheduler = new EventLoopScheduler();
-                ExecuteStrategy(barspan, instrument, scheduler);
+                ExecuteStrategy(feed, barspan, instrument, scheduler);
             }
 
             StartCommand = new RelayCommand(_ =>
@@ -133,29 +141,35 @@ namespace FxTrendFollowing.Strategies
             Reporters = new Carvers.Infra.ViewModels.Reporters(logReport, chartReport, summaryReport);
         }
 
-        private void ExecuteStrategy(TimeSpan barspan, Symbol instrument, IScheduler scheduler)
-        {
-            //var summaryLog = Ibtws is IBTWS 
-            //        ? new FileWriter(GlobalPaths.StrategySummaryFile(Strategy, instrument).FullName, 24)
-            //        : (IFileWriter)new DummyFileWriter();
 
+        private void ExecuteStrategy(IObservable<Tuple<CurrencyPair, Candle>> feed, TimeSpan barspan, Symbol instrument, IScheduler scheduler)
+        {
             var summaryLog = new FileWriter(GlobalPaths.StrategySummaryFile(Strategy, instrument).FullName, 24);
 
-            var originalFeed = Ibtws.RealTimeBarStream
-                .Where(msg => msg.IsForCurrencyPair(instrument))
-                .Select(msg => msg.ToCandle(barspan))
+            var originalFeed = feed.Where(f => f.Item1 == instrument)
+                .Select(f => f.Item2)
                 .Publish()
                 .RefCount();
 
             var hourlyStream = originalFeed.ToHourlyStream();
             var dailyStream = hourlyStream.ToDailyStream();
 
-            hourlyStream.Subscribe(c =>
+            hourlyStream
+                .Subscribe(c =>
             {
                 var openOrder = Strategy.OpenedOrders.SingleOrDefault(order => order.OrderInfo.Symbol == instrument);
                 if (openOrder != null)
-                    Strategy.Close(openOrder.GetCloseOrder(Strategy, double.MaxValue, double.MaxValue, c.Close, c)
-                        .Item2);
+                {
+                    var closeOrder = openOrder.GetCloseOrder(Strategy, double.MaxValue, double.MaxValue, c.Close, c,
+                            ExchangeRateGetter.GetExchangeRate);
+
+
+                    //if(closeOrder.Item2.ProfitLoss.Value < 0 ||
+                    ////if(closeOrder.Item1 != OrderExtensions.CloseOrderTrigger.TimeLimit 
+                    //    c.TimeStamp - openOrder.OrderInfo.TimeStamp > TimeSpan.FromHours(2))
+                        Strategy.Close(closeOrder.Item2);
+
+                }
             });
 
 
@@ -213,7 +227,17 @@ namespace FxTrendFollowing.Strategies
                     .Where(t => t.Count() == 4)
                     .Foreach(t =>
                     {
-                        var buyOrSell = ComputeStrategy(t);
+                        //var sentimentBuy = tups.SelectMany(tup => tup).Select(tu => tu.shadow.MiddlePoint())
+                        //    .TakeLast(2)
+                        //    .IsInAscending();
+
+                        //var sentimentSell = tups.SelectMany(tup => tup).Select(tu => tu.shadow.MiddlePoint())
+                        //    .TakeLast(2)
+                        //    .IsInDescending();
+
+                        
+
+                        var buyOrSell = ComputeStrategy(t, true, true);
                         Log(t, buyOrSell, summaryLog);
                     });
 
@@ -270,9 +294,14 @@ namespace FxTrendFollowing.Strategies
             }));
         }
 
-        private Tuple<bool,bool> ComputeStrategy(IEnumerable<(Symbol instrument, Candle candle, ShadowCandle shadow, double val, double strength)> tups)
+        private Tuple<bool,bool> ComputeStrategy(IEnumerable<(Symbol instrument, Candle candle, ShadowCandle shadow, double val, double strength)> tups, bool buyS, bool sellS)
         {
-            
+            var quantity = 100000;
+            var baseCurrency = ((CurrencyPair)tups.First().instrument).BaseCurrency;
+            if (baseCurrency != Currency.GBP)
+                quantity = (int)(ExchangeRateGetter.GetExchangeRate(CurrencyPair.Get(Currency.GBP, baseCurrency)) * 100000);
+
+
             Debug.Assert(tups.Select(t => t.shadow).Distinct().Count() == 1);
 
             var noTrade = Tuple.Create(false, false);
@@ -284,7 +313,7 @@ namespace FxTrendFollowing.Strategies
 
             if (lastCandle.TimeStamp.Hour >= 17)
                 return noTrade;
-
+            
             if (Strategy.OpenedOrders.Any() ||
                 Strategy.ClosedOrders.OrderBy(o => o.OrderInfo.TimeStamp).LastOrDefault()?.OrderInfo.TimeStamp >= lastCandle.TimeStamp)
             {
@@ -297,11 +326,11 @@ namespace FxTrendFollowing.Strategies
                             && Math.Abs(recent.strength - recent.candle.Close) >= 0.0010
                             && recent.candle.Close < recent.shadow.MiddlePoint();
 
-            if (shouldBuy)
+            if (shouldBuy && buyS)
             {
                 Debug.WriteLine($"BUY: Candle: {lastCandle.TimeStamp}, Shadow: {recent.shadow.ToCsv()}, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
                 Strategy.Open(new BuyOrder(new OrderInfo(recent.candle.TimeStamp, recent.instrument, Strategy,
-                    recent.candle.Close.USD(), 100000)));
+                    recent.candle.Close.USD(), quantity)));
                 return buyTrade;
             }
 
@@ -310,11 +339,11 @@ namespace FxTrendFollowing.Strategies
                              && Math.Abs(recent.strength - recent.candle.Close) >= 0.0010
                              && recent.candle.Close > recent.shadow.MiddlePoint();
 
-            if (shouldSell)
+            if (shouldSell && sellS)
             {
                 Debug.WriteLine($"SELL: Candle: {lastCandle.TimeStamp}, Shadow: {recent.shadow.ToCsv()}, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
                 Strategy.Open(new ShortSellOrder(new OrderInfo(recent.candle.TimeStamp, recent.instrument, Strategy,
-                    recent.candle.Close.USD(), 100000)));
+                    recent.candle.Close.USD(), quantity)));
                 return sellTrade;
             }
 
@@ -395,5 +424,26 @@ namespace FxTrendFollowing.Strategies
                 OnPropertyChanged();
             }
         }
+    }
+
+
+    public class ExchangeRateGetter
+    {
+        private static readonly Dictionary<CurrencyPair, double> ExchangeRate;
+
+        static ExchangeRateGetter()
+        {
+            ExchangeRate = CurrencyPair.All()
+                .ToDictionary(p => p, p => double.NaN);
+        }
+
+        public ExchangeRateGetter(IObservable<Tuple<CurrencyPair, Candle>> feed)
+        {
+            feed.Subscribe(f => ExchangeRate[f.Item1] = f.Item2.Close);
+        }
+
+        public static double GetExchangeRate(CurrencyPair pair)
+            //=> 1;
+            => ExchangeRate[pair];
     }
 }

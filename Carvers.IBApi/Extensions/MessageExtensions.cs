@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using Carvers.Models;
 using Carvers.Utilities;
 using IBSampleApp.messages;
@@ -29,6 +30,9 @@ namespace Carvers.IBApi.Extensions
             
             return start.AddMilliseconds(epoch * 1000);
         }
+
+        public static CurrencyPair ToCurrencyPair(this RealTimeBarMessage msg)
+            => CurrencyPair.All().Single(msg.IsForCurrencyPair);
 
         public static bool IsForCurrencyPair(this RealTimeBarMessage msg, Symbol pair)
             => pair.UniqueId == msg.RequestId - IBTWS.RT_BARS_ID_BASE;

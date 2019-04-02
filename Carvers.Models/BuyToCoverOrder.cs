@@ -15,7 +15,8 @@ namespace Carvers.Models
         public BuyToCoverOrder(ShortSellOrder openOrder, IOrderInfo orderInfo, Func<CurrencyPair, double> excahngeRateProvider)
         {
             OpenOrder = openOrder;
-            ProfitLoss = ((CurrencyPair)orderInfo.Symbol).ProfitLoss(openOrder.OrderInfo.Size, (openOrder.OrderInfo.Price - orderInfo.Price).Value, excahngeRateProvider).USD();
+            ProfitLoss = ((CurrencyPair)orderInfo.Symbol)
+                .ProfitLoss(openOrder.OrderInfo.Size, (openOrder.OrderInfo.Price - orderInfo.Price).Value, excahngeRateProvider).USD();
             OrderInfo = orderInfo;
         }
 
