@@ -123,7 +123,7 @@ namespace Carvers.Utilities
 
             Debug.Assert(!double.IsNaN(percentMove));
 
-            return Tuple.Create(candle.TimeStamp.Add(candleSpan), percentMove, 100 - percentMove);
+            return Tuple.Create(candle.TimeStamp, percentMove, 100 - percentMove);
         }
 
         public static Tuple<DateTimeOffset, double, double> ToCurrencyStrength(this Candle candle)

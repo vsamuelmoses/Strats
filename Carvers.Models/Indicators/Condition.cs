@@ -94,7 +94,7 @@ namespace Carvers.Models.Indicators
         {
             openedOrders.Add(order);
             openOrders.OnNext(order);
-            Debug.WriteLine($"Added Order {order.OrderInfo.ToCsv()}");
+            //Debug.WriteLine($"Added Order {order.OrderInfo.ToCsv()}");
         }
 
         public void Close(IClosedOrder order)
@@ -109,7 +109,7 @@ namespace Carvers.Models.Indicators
             closeddOrders.OnNext(order);
             RecentClosedOrder = order;
 
-            Debug.WriteLine($"Closed Order {order.OrderInfo.ToCsv()}");
+            //Debug.WriteLine($"Closed Order {order.OrderInfo.ToCsv()}");
         }
 
         public Price PL(Predicate<IClosedOrder> condition)

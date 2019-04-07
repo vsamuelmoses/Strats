@@ -105,6 +105,7 @@
     </Compile>
     <Compile Include="CurrencyStrengthFeed.cs" />
     <Compile Include="Reporters\CurrencyStrengthLogger.cs" />
+    <Compile Include="Strategies\CurrencyStrengthStrategy.cs" />
     <Compile Include="Strategies\ShadowBreakoutStrategy.cs" />
     <Compile Include="Strategies\Day20BreakoutTrade.cs" />
     <Compile Include="Strategies\MovingAveragesPerfectOrder.cs" />
