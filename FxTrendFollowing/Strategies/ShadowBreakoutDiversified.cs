@@ -105,7 +105,7 @@ namespace FxTrendFollowing.Strategies
                        side = "BUY";
 
                    if (Ibtws is IBTWS)
-                       Ibtws.PlaceOrder(ContractCreator.GetContract(order.OrderInfo.Symbol), OrderCreator.GetOrder(Ibtws.NextOrderId, side, "100000", "MKT", "", "DAY"));
+                       Ibtws.PlaceOrder(ContractCreator.GetContract(order.OrderInfo.Symbol), OrderCreator.GetOrder(Ibtws.NextOrderId, side, order.OrderInfo.Size.ToString(), "MKT", "", "DAY"));
                });
 
 
