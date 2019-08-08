@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using Carvers.Infra.Extensions;
+using Carvers.Models;
 using IBApi;
 using IBSampleApp.messages;
 
@@ -10,6 +13,12 @@ namespace Carvers.IBApi
 {
     public class IBTWS : IEngine
     {
+
+        private const int ACCOUNT_ID_BASE = 50000000;
+
+        private const int ACCOUNT_SUMMARY_ID = ACCOUNT_ID_BASE + 1;
+
+
         private readonly Subject<RealTimeBarMessage> realTimeBarMsgSubject;
         private Subject<HistoricalDataMessage> historicalMsgSubject;
 
@@ -26,6 +35,8 @@ namespace Carvers.IBApi
         private readonly Subject<IBTWSConnectionState> ibtwsConnectionStateSubject;
         public IObservable<IBTWSConnectionState> IbtwsConnectionStateStream => ibtwsConnectionStateSubject;
 
+        public IObservable<CashBalance> CashBalanceStream { get; }
+
         public static readonly string LocalHost = "127.0.0.1";
         public static readonly int IBPaperTradingPort = 7497;
         public static readonly int ClientId = 1;
@@ -39,7 +50,6 @@ namespace Carvers.IBApi
         {
             signal = new EReaderMonitorSignal();
             ibClient = new IBClient(signal);
-
             ibtwsMessageSubject = new Subject<IBTWSMessage>();
 
             realTimeBarMsgSubject = new Subject<RealTimeBarMessage>();
@@ -59,6 +69,13 @@ namespace Carvers.IBApi
 
             ibtwsConnectionStateSubject = new Subject<IBTWSConnectionState>();
             ibClient.ConnectionClosed += () => ibtwsConnectionStateSubject.OnNext(new IBTWSConnectionState(false));
+
+            CashBalanceStream = Observable.FromEventPattern<AccountSummaryMessage, CashBalance>(
+                    h => h.ToCashBalance(),
+                    h => h.ToCashBalance())
+                .Where(e => e.EventArgs != null)
+                .Select(args => args.EventArgs);
+
         }
 
         public bool IsConnected => ibClient.ClientSocket.IsConnected();
@@ -125,6 +142,12 @@ namespace Carvers.IBApi
             requests.Foreach(req => AddRealtimeDataRequest(req.Item1, req.Item2));
         }
 
+        public IObservable<CashBalance> GetCashBalances()
+        {
+            ibClient.ClientSocket.reqAccountSummary(ACCOUNT_SUMMARY_ID, "All", "$LEDGER:ALL");
+           return CashBalanceStream;
+        }
+
         public void AddRealtimeDataRequest(int tickerId, Contract contract)
         {
             ibClient.ClientSocket.reqRealTimeBars(tickerId + RT_BARS_ID_BASE, contract, 5, "MIDPOINT", false, null);
@@ -184,6 +207,35 @@ namespace Carvers.IBApi
             Arg2 = arg2;
             Arg3 = arg3;
             Ex = ex;
+        }
+    }
+
+    public class CashBalance
+    {
+        public Currency Currency { get; }
+        public double Value { get; }
+
+        public CashBalance(Currency currency, double value)
+        {
+            Currency = currency;
+            Value = value;
+        }
+    }
+
+    public static class AccountSummaryExtensions
+    {
+        public static CashBalance ToCashBalance(this AccountSummaryMessage acctSummaryMessage)
+        {
+            if (acctSummaryMessage.Tag == "CashBalance")
+            {
+                var currency = Currency.Currencies.Single(c => c.Symbol == acctSummaryMessage.Currency);
+                var value = double.Parse(acctSummaryMessage.Value);
+
+                return new CashBalance(currency, value);
+
+            }
+
+            return null;
         }
     }
 }

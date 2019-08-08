@@ -6,8 +6,8 @@ namespace Carvers.Utilities
 {
     public static class GlobalPaths
     {
-        //private const string Data = @"C:\Users\svemagiri\Documents\GitHub\Strats\Data\";
-        private const string Data = @"C:\LiveStrats\Data\";
+        private const string Data = @"C:\Users\svemagiri\Documents\GitHub\Strats\Data\";
+        //private const string Data = @"C:\LiveStrats\Data\";
 
         private const string IbData = Data + "IBData\\";
         private const string HistoricalData = Data + "HistoricalData\\";

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 
@@ -37,6 +38,7 @@ namespace Carvers.IBApi
 
         public readonly Subject<HistoricalDataMessage> historicalDataSubject;
         public IObservable<HistoricalDataMessage> HistoricalDataStream => historicalDataSubject;
+        public IObservable<CashBalance> CashBalanceStream => Observable.Empty<CashBalance>();
 
         public IBTWSSimulator(Func<Symbol, DateTimeOffset, string> filePathGetter, DateTimeOffset startTime)
             : this(filePathGetter, startTime, DateTimeOffset.MaxValue)
@@ -147,7 +149,7 @@ namespace Carvers.IBApi
         {
             throw new NotImplementedException();
         }
-
+        
         public void AddHistoricalDataRequest(int tickerId, Contract contract, string endDateTime, string durationString,
             string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate)
         {
@@ -163,6 +165,11 @@ namespace Carvers.IBApi
         public void PlaceOrder(Contract contract, Order order)
         {
             
+        }
+
+        public IObservable<CashBalance> GetCashBalances()
+        {
+            throw new NotImplementedException();
         }
     }
 }

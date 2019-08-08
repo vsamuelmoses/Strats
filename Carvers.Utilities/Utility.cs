@@ -148,7 +148,7 @@ namespace Carvers.Utilities
                     {
                         if(dateTime.Year == 2019)
                             return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
-                                $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}02.csv");
+                                $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}{dateTime.Month:D2}.csv");
 
                         return Path.Combine(GlobalPaths.FxHistoricalData, dateTime.Year.ToString(),
                             $"DAT_MT_{pair.ToString()}_M1_{dateTime.Year.ToString()}.csv");

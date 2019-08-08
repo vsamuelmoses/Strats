@@ -15,6 +15,7 @@ namespace Carvers.IBApi
         bool IsConnected { get; }
         int NextOrderId { get; }
         IObservable<HistoricalDataMessage> HistoricalDataStream { get; }
+        IObservable<CashBalance> CashBalanceStream { get; }
         bool Connect(string host, int port, int clientId);
         void Disconnect();
         void AddRealtimeDataRequests(IEnumerable<Tuple<int, Contract>> requests);
@@ -22,5 +23,6 @@ namespace Carvers.IBApi
         void AddRealtimeDataRequest(int tickerId, Contract contract, string whatToShow, bool useRTH);
         void AddHistoricalDataRequest(int tickerId, Contract contract, string endDateTime, string durationString, string barSizeSetting, string whatToShow, int useRTH, int dateFormat, bool keepUpToDate);
         void PlaceOrder(Contract contract, Order order);
+        IObservable<CashBalance> GetCashBalances();
     }
 }

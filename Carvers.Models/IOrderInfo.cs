@@ -44,7 +44,7 @@ namespace Carvers.Models
 
         public string ToCsv()
         {
-            return $"{Symbol},{TimeStamp},{Price}";
+            return $"{Symbol},{TimeStamp},{Price},{Size},{Candle.ToCsv()}";
         }
     }
 

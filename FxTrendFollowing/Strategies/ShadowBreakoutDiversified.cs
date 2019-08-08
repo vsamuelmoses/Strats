@@ -443,7 +443,7 @@ namespace FxTrendFollowing.Strategies
         }
 
         public static double GetExchangeRate(CurrencyPair pair)
-            //=> 1;
-            => ExchangeRate[pair];
+            => 1;
+            //=> ExchangeRate[pair];
     }
 }

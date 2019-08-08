@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Threading;
 using Carvers.Models.Extensions;
-using Carvers.Infra.Extensions;
 
 namespace Carvers.Models.DataReaders
 {
@@ -25,6 +21,19 @@ namespace Carvers.Models.DataReaders
         //        TimeSpan.FromDays(1),
         //        dateTime => dateTime.Date);
 
+        public static IObservable<Candle> ToHourlyScanStream(this IObservable<Candle> candleStream)
+        {
+            return candleStream
+                .Scan((c1, c2) =>
+                {
+                    var returnValue =  c1.TimeStamp.Hour != c2.TimeStamp.Hour 
+                        ? c2 
+                        : c1.Add(c2);
+                    return returnValue.AdjustTime(_ => c2.TimeStamp.DateTime);
+                })
+                .Publish()
+                .RefCount();
+        }
 
         public static IObservable<Candle> ToHourlyStream(this IObservable<Candle> candleStream)
             => Aggregate(candleStream, 
