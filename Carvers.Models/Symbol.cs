@@ -205,7 +205,9 @@ namespace Carvers.Models
             if (pair.BaseCurrency == Currency.GBP)
                 return (differenceInPips * positionSize);
 
-            return (differenceInPips * positionSize) / fxRateGetter(CurrencyPair.Get(Currency.GBP, pair.BaseCurrency)) - 10d;
+            var fxRate = fxRateGetter(CurrencyPair.Get(Currency.GBP, pair.BaseCurrency));
+
+            return ((differenceInPips * positionSize) / fxRate) - 10d;
         }
 
 
